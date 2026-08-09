@@ -163,7 +163,7 @@ export default function LoginPage() {
 
         <div className="mt-6 flex items-center justify-center gap-1.5 text-[10px] text-foreground-secondary/70">
           <ShieldCheck size={11} />
-          Single-user access • Secured by Ostrin backend
+          Secured by Campus backend
         </div>
       </div>
     </div>
