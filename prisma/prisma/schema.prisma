@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String         @id @default(uuid())
+  name           String
+  email          String         @unique
+  passwordHash   String
+  role           Role           @default(USER)
+  isActive       Boolean        @default(true)
+  failedAttempts Int            @default(0)
+  lockedUntil    DateTime?
+  lastLoginAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  auditLogs      AuditLog[]
+  nodes          Node[]
+  refreshTokens  RefreshToken[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model RefreshToken {
+  id             String   @id @default(uuid())
+  tokenHash      String   @unique
+  family         String
+  revoked        Boolean  @default(false)
+  replacedByHash String?
+  userAgent      String?
+  ip             String?
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([family])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Node {
+  id               String    @id @default(uuid())
+  type             NodeType
+  name             String
+  content          String?
+  mimeType         String?
+  size             Int?
+  storagePath      String?
+  imagekitFileId   String?
+  thumbnailUrl     String?
+  trashed          Boolean   @default(false)
+  trashedAt        DateTime?
+  originalParentId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  ownerId          String
+  parentId         String?
+  owner            User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  parent           Node?     @relation("NodeTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children         Node[]    @relation("NodeTree")
+
+  @@index([ownerId, parentId])
+  @@index([ownerId, trashed])
+  @@index([parentId])
+  @@index([ownerId, name])
+  @@map("nodes")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  meta      Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum NodeType {
+  FILE
+  FOLDER
+}

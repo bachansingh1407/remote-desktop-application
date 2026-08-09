@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.local
+dist/
+build/
+uploads/*
+!uploads/.gitkeep
+*.log
+npm-debug.log*
+.DS_Store
+prisma/dev.db

@@ -1,0 +1,152 @@
+import {
+    Settings,
+    FolderOpen,
+    NotebookPen,
+    Calendar,
+    Sparkles,
+    Terminal,
+    Trash2,
+    ListChecks,
+    Code2,
+} from "lucide-react";
+import SettingsApp from "@/app/apps/settings/SettingsApp";
+import ToolConsoleApp from "../apps/tool-console/ToolConsoleApp";
+import CalendarApp from "../apps/calendar/CalendarApp";
+import AIAssistantApp from "../apps/ai-assistant/AIAssistantApp";
+import FilesApp from "../apps/files/FilesApp";
+import WriteApp from "../apps/write/WriteApp";
+import TrashApp from "../apps/trash/TrashApp";
+import TasksApp from "../apps/tasks/TasksApp";
+import SnippetsApp from "../apps/snippets/SnippetsApp";
+
+export const APP_REGISTRY = [
+    {
+        id: "files",
+        title: "Files",
+        icon: FolderOpen,
+        color: "#0FA37D",
+        component: FilesApp,
+        pinned: true,
+        showOnDesktop: true,
+        comingSoon: false,
+        width: 820,
+        height: 560,
+        minWidth: 640,
+        minHeight: 440
+    },
+    {
+        id: "write",
+        title: "Write",
+        icon: NotebookPen,
+        color: "#D6285F",
+        component: WriteApp,
+        pinned: true,
+        showOnDesktop: true,
+        comingSoon: false,
+        width: 780,
+        height: 560,
+        minWidth: 600,
+        minHeight: 440,
+    },
+    // {
+    //     id: "tasks",
+    //     title: "Tasks",
+    //     icon: ListChecks,
+    //     color: "#2563EB",
+    //     component: TasksApp,
+    //     pinned: true,
+    //     showOnDesktop: true,
+    //     comingSoon: false,
+    //     width: 620,
+    //     height: 520,
+    //     minWidth: 460,
+    //     minHeight: 380,
+    // },
+    {
+        id: "snippets",
+        title: "Snippets",
+        icon: Code2,
+        color: "#8B5CF6",
+        component: SnippetsApp,
+        pinned: true,
+        showOnDesktop: true,
+        comingSoon: false,
+        width: 720,
+        height: 520,
+        minWidth: 560,
+        minHeight: 400,
+    },
+    {
+        id: "calendar",
+        title: "Calendar",
+        icon: Calendar,
+        color: "#D97F0A",
+        component: CalendarApp,
+        pinned: true,
+        showOnDesktop: true,
+        comingSoon: false,
+        width: 340,
+        height: 420,
+        minWidth: 300,
+        minHeight: 400,
+    },
+    {
+        id: "core-assistent", // or a dedicated "ai-assistant" id — see note below
+        title: "akaza",
+        icon: Sparkles,
+        color: "#0FA35C",
+        component: AIAssistantApp,
+        pinned: true,
+        showOnDesktop: true,
+        comingSoon: false,
+        width: 780,
+        height: 580,
+        minWidth: 600,
+        minHeight: 440,
+    },
+    {
+        id: "tool-console",
+        title: "Tool Console",
+        icon: Terminal,
+        color: "#4A5568",
+        component: ToolConsoleApp,
+        pinned: true,
+        showOnDesktop: true,
+        comingSoon: false,
+        width: 860,
+        height: 560,
+        minWidth: 620,
+        minHeight: 440,
+    },
+    {
+        id: "trash",
+        title: "Trash",
+        icon: Trash2,
+        color: "#C22B26",
+        component: TrashApp,
+        pinned: true,
+        showOnDesktop: true,
+        comingSoon: false,
+        width: 700,
+        height: 480,
+        minWidth: 480,
+        minHeight: 360,
+    },
+    {
+        id: "settings",
+        title: "Settings",
+        icon: Settings,
+        color: "#4A5568",
+        component: SettingsApp,
+        pinned: true,
+        showOnDesktop: true,
+        width: 820,
+        height: 540,
+        minWidth: 700,
+        minHeight: 500,
+    },
+];
+
+export function getApp(id) {
+    return APP_REGISTRY.find((a) => a.id === id);
+}
