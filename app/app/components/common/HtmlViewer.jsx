@@ -9,10 +9,20 @@ export default function HtmlViewer({ fileId }) {
   const [mode, setMode] = useState("split");
   const [device, setDevice] = useState("desktop");
 
- useEffect(() => {
+useEffect(() => {
+  let cancelled = false;
+
   fetchFileText(fileId)
-    .then(setHtml)
+    .then((text) => {
+      if (!cancelled) {
+        setHtml(text);
+      }
+    })
     .catch(console.error);
+
+  return () => {
+    cancelled = true;
+  };
 }, [fileId]);
 
   const previewWidth =
