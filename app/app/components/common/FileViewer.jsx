@@ -10,6 +10,10 @@ const PdfViewer = dynamic(() => import("./PdfViewer"), {
   ssr: false,
   loading: () => <div className="flex h-full items-center justify-center text-xs text-foreground-secondary">Loading PDF viewer...</div>,
 });
+const HtmlViewer = dynamic(() => import("./HtmlViewer"), {
+  ssr: false,
+  loading: () => <div className="flex h-full items-center justify-center text-xs text-foreground-secondary">Loading HTML viewer...</div>,
+});
 
 // No filename header here either — window titlebar already shows it.
 export default function FileViewer({ fileId }) {
@@ -21,7 +25,12 @@ export default function FileViewer({ fileId }) {
 
   const isImage = node?.imported && node?.mimeType?.startsWith("image/");
   const isPdf = node?.imported && node?.mimeType === "application/pdf";
-
+  const isHtml =
+    node?.imported &&
+    (
+      node?.mimeType === "text/html" ||
+      node?.name?.toLowerCase().endsWith(".html")
+    );
   useEffect(() => {
     if (!node?.imported || !(isImage || isPdf)) return;
     let cancelled = false;
@@ -74,6 +83,14 @@ export default function FileViewer({ fileId }) {
     );
   }
 
+  if (isHtml) {
+  return (
+    <HtmlViewer
+      fileId={node.id}
+      fileName={node.name}
+    />
+  );
+}
   if (isPdf) {
     return (
       <PdfViewer

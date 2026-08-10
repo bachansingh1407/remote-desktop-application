@@ -89,4 +89,11 @@ export async function fetchFileDataUrl(nodeId) {
   });
 }
 
+export async function fetchFileText(nodeId) {
+  const response = await api.get(`/nodes/${nodeId}/download`, {
+    responseType: "text",
+  });
+
+  return response.data;
+}
 export default api;

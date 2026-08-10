@@ -4,18 +4,7 @@ import { useEffect, useRef } from "react";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
 
-const Font = Quill.import("attributors/class/font");
 const Size = Quill.import("attributors/style/size");
-
-Font.whitelist = [
-  "arial",
-  "georgia",
-  "times-new-roman",
-  "courier",
-  "roboto",
-  "merriweather",
-  "poppins",
-];
 
 Size.whitelist = [
   "10px",
@@ -31,20 +20,9 @@ Size.whitelist = [
     "48px",
 ];
 
-Quill.register(Font, true);
 Quill.register(Size, true);
-// 8 fonts chosen for articles / blogs / notes / diary writing:
-// a couple of system fonts (no loading needed) + 2 web fonts for personality.
-const FONT_OPTIONS = [
-  { value: "", label: "Default", family: "inherit" },
-  { value: "arial", label: "Arial", family: "Arial, Helvetica, sans-serif" },
-  { value: "georgia", label: "Georgia", family: "Georgia, 'Times New Roman', serif" },
-  { value: "times-new-roman", label: "Times New Roman", family: "'Times New Roman', Times, serif" },
-  { value: "courier", label: "Courier New", family: "'Courier New', Courier, monospace" },
-  { value: "roboto", label: "Roboto", family: "var(--font-roboto), Arial, sans-serif" },
-  { value: "merriweather", label: "Merriweather", family: "var(--font-merriweather), Georgia, serif" },
-  { value: "poppins", label: "Poppins", family: "var(--font-poppins), Arial, sans-serif" },
-];
+// Font is fixed to Montserrat app-wide, so no font picker/whitelist is
+// registered — only size stays selectable.
 
 const SIZE_OPTIONS = [
   { value: "", label: "Normal" },
@@ -67,10 +45,6 @@ let registered = false;
 function ensureFormatsRegistered() {
   if (registered) return;
 
-  const Font = Quill.import("formats/font");
-  Font.whitelist = FONT_OPTIONS.filter((f) => f.value).map((f) => f.value);
-  Quill.register(Font, true);
-
   const SizeStyle = Quill.import("attributors/style/size");
   SizeStyle.whitelist = SIZE_OPTIONS.filter((s) => s.value).map((s) => s.value);
   Quill.register(SizeStyle, true);
@@ -79,16 +53,12 @@ function ensureFormatsRegistered() {
 }
 
 function buildToolbarHTML() {
-  const fontOpts = FONT_OPTIONS.map(
-    (f) => `<option value="${f.value}">${f.label}</option>`
-  ).join("");
   const sizeOpts = SIZE_OPTIONS.map(
     (s) => `<option value="${s.value}">${s.label}</option>`
   ).join("");
 
   return `
     <span class="ql-formats">
-      <select class="ql-font">${fontOpts}</select>
       <select class="ql-size">${sizeOpts}</select>
     </span>
     <span class="ql-formats">
@@ -125,27 +95,6 @@ function buildToolbarHTML() {
 function buildDynamicPickerCSS() {
   // !important is mandatory: Quill's own snow.css sets a base
   // `content: 'Sans Serif'` rule on .ql-font that beats plain overrides.
-  const fontRules = FONT_OPTIONS.map(({ value, label, family }) => {
-    const sel = value ? `[data-value="${value}"]` : `:not([data-value])`;
-    return `
-      .quill-shell .ql-toolbar .ql-font .ql-picker-label${sel}::before,
-      .quill-shell .ql-toolbar .ql-font .ql-picker-item${sel}::before {
-        content: "${label}" !important;
-      }
-      ${
-        value
-          ? `
-      .quill-shell .ql-toolbar .ql-font .ql-picker-label${sel},
-      .quill-shell .ql-toolbar .ql-font .ql-picker-item${sel} {
-        font-family: ${family};
-      }
-      .quill-shell .ql-editor .ql-font-${value} {
-        font-family: ${family};
-      }`
-          : ""
-      }`;
-  }).join("\n");
-
   const sizeRules = SIZE_OPTIONS.map(({ value, label }) => {
     const sel = value ? `[data-value="${value}"]` : `:not([data-value])`;
     return `
@@ -155,7 +104,7 @@ function buildDynamicPickerCSS() {
       }`;
   }).join("\n");
 
-  return fontRules + sizeRules;
+  return sizeRules;
 }
 
 export default function QuillEditor({
@@ -199,18 +148,13 @@ export default function QuillEditor({
     // Explicit wiring: Quill's automatic select->format detection depends on
     // the `selected` HTML attribute being literally present and can miss
     // events when the toolbar container is built manually (as ours is).
-    // Binding directly guarantees font/size actually apply to the text.
-    const fontSelect = toolbarEl.querySelector("select.ql-font");
+    // Binding directly guarantees size actually applies to the text.
     const sizeSelect = toolbarEl.querySelector("select.ql-size");
 
-    const handleFontChange = () => {
-      quill.format("font", fontSelect.value || false, "user");
-    };
     const handleSizeChange = () => {
       quill.format("size", sizeSelect.value || false, "user");
     };
 
-    fontSelect?.addEventListener("change", handleFontChange);
     sizeSelect?.addEventListener("change", handleSizeChange);
 
     quillRef.current = quill;
@@ -235,7 +179,7 @@ export default function QuillEditor({
           align-items: center;
           gap: 4px 2px;
           overflow: visible;
-          background: #fafafa;
+          background: var(--color-background-secondary);
           position: relative;
         }
         .quill-shell .ql-toolbar.ql-snow .ql-formats {
@@ -261,10 +205,10 @@ export default function QuillEditor({
           transition: background-color 120ms ease;
         }
         .quill-shell .ql-toolbar.ql-snow button:hover {
-          background: #eef0f3;
+          background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
         }
         .quill-shell .ql-toolbar.ql-snow button.ql-active {
-          background: #ede9fe;
+          background: color-mix(in srgb, var(--color-accent) 16%, transparent);
         }
         .quill-shell .ql-toolbar.ql-snow button svg {
           width: 16px;
@@ -272,16 +216,16 @@ export default function QuillEditor({
           display: block;
         }
         .quill-shell .ql-toolbar.ql-snow button.ql-active .ql-stroke {
-          stroke: #7c3aed;
+          stroke: var(--color-accent);
         }
         .quill-shell .ql-toolbar.ql-snow button.ql-active .ql-fill {
-          fill: #7c3aed;
+          fill: var(--color-accent);
         }
         .quill-shell .ql-toolbar.ql-snow .ql-stroke {
-          stroke: #4b5563;
+          stroke: var(--color-foreground-secondary);
         }
         .quill-shell .ql-toolbar.ql-snow .ql-fill {
-          fill: #4b5563;
+          fill: var(--color-foreground-secondary);
         }
         .quill-shell .ql-toolbar.ql-snow .ql-picker {
           height: 28px;
@@ -294,31 +238,25 @@ export default function QuillEditor({
           height: 28px;
           border-radius: 6px;
           border: 1px solid transparent;
-          cursor: pointer;
+          color: var(--color-foreground);
           transition: background-color 120ms ease, border-color 120ms ease;
         }
         .quill-shell .ql-toolbar.ql-snow .ql-picker-label:hover,
         .quill-shell .ql-toolbar.ql-snow .ql-picker-label.ql-active,
         .quill-shell .ql-toolbar.ql-snow .ql-picker-expanded .ql-picker-label {
-          background: #eef0f3;
+          background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
           border-color: var(--color-border);
         }
         .quill-shell .ql-toolbar.ql-snow .ql-picker-label svg {
           display: block;
         }
-        .quill-shell .ql-toolbar.ql-snow .ql-font .ql-picker-label,
         .quill-shell .ql-toolbar.ql-snow .ql-size .ql-picker-label {
           padding: 0 18px 0 8px;
           white-space: nowrap;
         }
-        .quill-shell .ql-toolbar.ql-snow .ql-font {
-          width: 130px;
-        }
         .quill-shell .ql-toolbar.ql-snow .ql-size {
           width: 62px;
         }
-        .quill-shell .ql-toolbar.ql-snow .ql-font .ql-picker-label,
-        .quill-shell .ql-toolbar.ql-snow .ql-font .ql-picker-item,
         .quill-shell .ql-toolbar.ql-snow .ql-size .ql-picker-label,
         .quill-shell .ql-toolbar.ql-snow .ql-size .ql-picker-item {
           font-size: 12px;
@@ -342,9 +280,9 @@ export default function QuillEditor({
           left: 0;
           border-radius: 8px;
           border: 1px solid var(--color-border);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
           padding: 4px;
-          background: #fff;
+          background: var(--color-background-secondary);
           z-index: 9999;
           display: none;
           max-height: 260px;
@@ -357,12 +295,13 @@ export default function QuillEditor({
           border-radius: 5px;
           padding: 5px 10px;
           white-space: nowrap;
+          color: var(--color-foreground);
         }
         .quill-shell .ql-toolbar.ql-snow .ql-picker:not(.ql-color-picker):not(.ql-background) .ql-picker-item:hover {
-          background: #f3f4f6;
+          background: color-mix(in srgb, var(--color-foreground) 6%, transparent);
         }
         .quill-shell .ql-toolbar.ql-snow .ql-picker-item.ql-selected {
-          color: #7c3aed;
+          color: var(--color-accent);
         }
         .quill-shell .ql-color-picker .ql-picker-options,
         .quill-shell .ql-background .ql-picker-options {
@@ -376,21 +315,26 @@ export default function QuillEditor({
           border-radius: 4px;
           margin: 2px;
         }
+        .quill-shell .ql-container.ql-snow {
+          border: none !important;
+          background: var(--color-background);
+        }
         .quill-shell .ql-editor {
           padding: 20px 24px;
           line-height: 1.7;
-          color: #1f2937;
+          color: var(--color-foreground);
+          font-family: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
         }
         .quill-shell .ql-editor.ql-blank::before {
           font-style: normal;
-          color: #9ca3af;
+          color: var(--color-foreground-secondary);
           left: 24px;
         }
         .quill-shell .ql-editor::-webkit-scrollbar {
           width: 8px;
         }
         .quill-shell .ql-editor::-webkit-scrollbar-thumb {
-          background: #e5e5e5;
+          background: color-mix(in srgb, var(--color-foreground) 15%, transparent);
           border-radius: 4px;
         }
         ${buildDynamicPickerCSS()}

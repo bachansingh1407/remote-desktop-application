@@ -119,8 +119,8 @@ export default function WriteApp() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-white">
-      <div className="flex shrink-0 items-center gap-1.5 border-b border-black/10 bg-white px-2 py-1.5">
+    <div className="flex h-full flex-col bg-background">
+      <div className="flex shrink-0 items-center gap-1.5 border-b border-border bg-background-secondary px-2 py-1.5">
         <ToolbarButton icon={FilePlus2} label="New" onClick={handleNew} />
         <ToolbarButton icon={FolderOpen} label="Open" onClick={handleOpen} />
         <div className="mx-1 flex items-center">
@@ -134,7 +134,7 @@ export default function WriteApp() {
             <button
               onClick={handleSaveAs}
               title="Save As — save a copy somewhere else"
-              className="flex items-center rounded-md px-1 py-1.5 text-black/50 hover:bg-black/[0.05]"
+              className="flex items-center rounded-md px-1 py-1.5 text-foreground/50 hover:bg-foreground/5"
             >
               <ChevronDown size={12} />
             </button>
@@ -142,8 +142,8 @@ export default function WriteApp() {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          {fileName && <span className="text-[11px] font-medium text-black/60">{fileName}</span>}
-          <span className={`text-[10.5px] ${status === "Save failed" ? "text-red-500" : "text-black/35"}`}>
+          {fileName && <span className="text-[11px] font-medium text-foreground/60">{fileName}</span>}
+          <span className={`text-[10.5px] ${status === "Save failed" ? "text-red-500" : "text-foreground/35"}`}>
             {status}
           </span>
         </div>
@@ -177,7 +177,7 @@ function ToolbarButton({ icon: Icon, label, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[11.5px] font-medium text-black/65 hover:bg-black/[0.05]"
+      className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[11.5px] font-medium text-foreground/65 hover:bg-foreground/5"
     >
       <Icon size={12} /> {label}
     </button>
