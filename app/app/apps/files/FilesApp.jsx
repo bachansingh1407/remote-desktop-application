@@ -5,11 +5,13 @@ import {
   Folder, FileText, FolderPlus, FilePlus2, ChevronRight,
   Trash2, LayoutGrid, ListIcon, Home, Upload, FileSpreadsheet, FileImage,
   Pencil, Copy, FolderInput, Search, X, FolderOpen,
+  FileCode2, FileJson2, FileAudio2, FileVideo2, FileArchive, FileTerminal,
 } from "lucide-react";
 import { useFileSystemStore, useWindowStore } from "@/app/stores";
 import { toast } from "@/app/stores/useToastStore";
 import { useContextMenu } from "@/app/components/common/ContextMenu";
 import FileEditor from "@/app/components/common/FileEditor";
+import { fetchFileDataUrl } from "@/app/lib/axios";
 import dynamic from "next/dynamic";
 
 const FileViewer = dynamic(() => import("@/app/components/common/FileViewer"), {
@@ -173,30 +175,30 @@ export default function FilesApp({ initialFolderId = null }) {
 
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
-      {/* header */}
-      <div className="sticky top-0 z-10 flex shrink-0 items-center gap-2 border-b border-border bg-background/95 px-3 py-2.5 shadow-[0_1px_0_rgba(0,0,0,0.03)] backdrop-blur-sm dark:shadow-[0_1px_0_rgba(255,255,255,0.03)]">
+      {/* header — glassy, matches Window/Taskbar chrome language */}
+      <div className="sticky top-0 z-10 flex shrink-0 items-center gap-2 border-b border-border bg-background-elevated px-4 py-3 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_1px_0_rgba(0,0,0,0.04)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]">
         {/* breadcrumb */}
         <div className="flex min-w-0 flex-1 items-center gap-0.5 text-xs text-foreground-secondary">
           <button
             onClick={() => setCurrentFolderId(null)}
             onDragOver={(e) => handleDragOver(e, "home")}
             onDrop={(e) => handleDrop(e, null)}
-            className={`flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 font-medium transition-colors
-              ${dragOverId === "home" ? "bg-accent/15 text-accent" : "hover:bg-black/[0.05] hover:text-foreground dark:hover:bg-white/[0.06]"}`}
+            className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-medium transition-all duration-150
+              ${dragOverId === "home" ? "bg-accent/15 text-accent ring-1 ring-inset ring-accent/30" : "hover:bg-foreground/[0.055] hover:text-foreground"}`}
           >
-            <Home size={13} />
+            <Home size={13} strokeWidth={2} />
             Workspace
           </button>
           {path.map((node, i) => (
             <span key={node.id} className="flex min-w-0 items-center gap-0.5">
-              <ChevronRight size={12} className="shrink-0 text-foreground-secondary/35" />
+              <ChevronRight size={12} className="shrink-0 text-foreground-secondary/30" />
               <button
                 onClick={() => setCurrentFolderId(node.id)}
                 onDragOver={(e) => handleDragOver(e, node.id)}
                 onDrop={(e) => handleDrop(e, node)}
-                className={`truncate rounded-md px-2 py-1.5 transition-colors
-                  ${dragOverId === node.id ? "bg-accent/15 text-accent" : "hover:bg-black/[0.05] hover:text-foreground dark:hover:bg-white/[0.06]"}
-                  ${i === path.length - 1 ? "font-medium text-foreground" : ""}`}
+                className={`truncate rounded-lg px-2.5 py-1.5 transition-all duration-150
+                  ${dragOverId === node.id ? "bg-accent/15 text-accent ring-1 ring-inset ring-accent/30" : "hover:bg-foreground/[0.055] hover:text-foreground"}
+                  ${i === path.length - 1 ? "font-semibold text-foreground" : ""}`}
               >
                 {node.name}
               </button>
@@ -204,17 +206,17 @@ export default function FilesApp({ initialFolderId = null }) {
           ))}
         </div>
 
-        {/* search */}
-        <div className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-black/[0.025] px-2.5 py-1.5 transition-colors focus-within:border-accent/40 dark:bg-white/[0.04]">
+        {/* search — pill, widens and glows on focus */}
+        <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-foreground/[0.03] px-3 py-1.5 transition-all duration-200 ease-out focus-within:w-56 focus-within:border-accent/40 focus-within:bg-background focus-within:ring-4 focus-within:ring-accent/[0.12] w-40">
           <Search size={13} className="shrink-0 text-foreground-secondary/55" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search workspace..."
-            className="w-36 bg-transparent text-xs text-foreground outline-none placeholder-foreground-secondary/55"
+            className="w-full min-w-0 bg-transparent text-xs text-foreground outline-none placeholder-foreground-secondary/55"
           />
           {query && (
-            <button onClick={() => setQuery("")} className="shrink-0 text-foreground-secondary/55 hover:text-foreground">
+            <button onClick={() => setQuery("")} className="shrink-0 rounded-full p-0.5 text-foreground-secondary/55 hover:bg-foreground/10 hover:text-foreground">
               <X size={12} />
             </button>
           )}
@@ -231,15 +233,15 @@ export default function FilesApp({ initialFolderId = null }) {
         <div className="mx-0.5 h-5 w-px shrink-0 bg-border" />
 
         {/* view toggle */}
-        <div className="flex shrink-0 items-center rounded-lg border border-border p-0.5">
+        <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-border bg-foreground/[0.02] p-0.5">
           <button onClick={() => setView("grid")} title="Grid view"
-            className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors
-              ${view === "grid" ? "bg-accent text-white shadow-sm" : "text-foreground-secondary/60 hover:bg-black/[0.05] dark:hover:bg-white/[0.06]"}`}>
+            className={`flex h-7 w-7 items-center justify-center rounded-md transition-all duration-150
+              ${view === "grid" ? "bg-accent text-white shadow-sm" : "text-foreground-secondary/60 hover:bg-foreground/[0.06] hover:text-foreground"}`}>
             <LayoutGrid size={13} />
           </button>
           <button onClick={() => setView("list")} title="List view"
-            className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors
-              ${view === "list" ? "bg-accent text-white shadow-sm" : "text-foreground-secondary/60 hover:bg-black/[0.05] dark:hover:bg-white/[0.06]"}`}>
+            className={`flex h-7 w-7 items-center justify-center rounded-md transition-all duration-150
+              ${view === "list" ? "bg-accent text-white shadow-sm" : "text-foreground-secondary/60 hover:bg-foreground/[0.06] hover:text-foreground"}`}>
             <ListIcon size={13} />
           </button>
         </div>
@@ -273,12 +275,18 @@ export default function FilesApp({ initialFolderId = null }) {
       </div>
 
       {/* footer */}
-      <div className="flex shrink-0 items-center justify-between border-t border-border px-4 py-2.5 text-[11px] text-foreground-secondary/70">
-        <span className="flex items-center gap-3">
-          <span className="flex items-center gap-1"><Folder size={11} className="text-foreground-secondary/50" /> {folderCount}</span>
-          <span className="flex items-center gap-1"><FileText size={11} className="text-foreground-secondary/50" /> {fileCount}</span>
+      <div className="flex shrink-0 items-center justify-between border-t border-border bg-background-secondary/40 px-4 py-2.5 text-[11px] text-foreground-secondary/70">
+        <span className="flex items-center gap-3.5">
+          <span className="flex items-center gap-1.5">
+            <span className="flex h-4 w-4 items-center justify-center rounded-[5px] bg-foreground/[0.06]"><Folder size={10} className="text-foreground-secondary/60" /></span>
+            {folderCount}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="flex h-4 w-4 items-center justify-center rounded-[5px] bg-foreground/[0.06]"><FileText size={10} className="text-foreground-secondary/60" /></span>
+            {fileCount}
+          </span>
         </span>
-        {isSearching && <span className="text-accent">{children.length} result{children.length !== 1 ? "s" : ""} for &quot;{query}&quot;</span>}
+        {isSearching && <span className="font-medium text-accent">{children.length} result{children.length !== 1 ? "s" : ""} for &quot;{query}&quot;</span>}
       </div>
     </div>
   );
@@ -288,7 +296,7 @@ function HeaderIconButton({ icon: Icon, label, onClick, disabled }) {
   return (
     <button onClick={onClick} disabled={disabled} title={label}
       className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-foreground-secondary
-                 transition-colors hover:bg-black/[0.05] hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-white/[0.06]">
+                 transition-all duration-150 hover:bg-foreground/[0.06] hover:text-foreground active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 disabled:active:scale-100">
       <Icon size={14} />
     </button>
   );
@@ -314,6 +322,15 @@ function InlineNameInput({ value, onChange, onCommit, onCancel, className }) {
   );
 }
 
+// Soft colored "glow" behind an icon tile — the signature touch that makes
+// file/folder icons read as tactile chips instead of flat colored squares.
+function iconTileStyle(color) {
+  return {
+    background: `linear-gradient(155deg, ${color}, color-mix(in srgb, ${color} 78%, black))`,
+    boxShadow: `0 3px 10px -3px ${color}80, inset 0 1px 0 rgba(255,255,255,0.25)`,
+  };
+}
+
 function GridView({
   items, selected, onSelect, onOpen, onContextMenu, onBackgroundContextMenu,
   draggedId, dragOverId, onDragStart, onDragEnd, onDragOver, onDrop, currentFolderId, getPath, isSearching,
@@ -326,22 +343,22 @@ function GridView({
       onClick={() => onSelect(null)}
       onDragOver={(e) => onDragOver(e, "empty-area")}
       onDrop={(e) => onDrop(e, currentFolderId ? { id: currentFolderId, type: "folder" } : null)}
-      className="grid auto-rows-min grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-x-2 gap-y-4 content-start min-h-full"
+      className="grid auto-rows-min grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-x-2 gap-y-4 content-start min-h-full"
     >
       {creating && (
-        <div className="flex flex-col items-center gap-2 rounded-xl p-2.5 text-center ring-1 ring-inset ring-accent/40 bg-accent/[0.06]">
+        <div className="animate-scale-in flex flex-col items-center gap-2.5 rounded-2xl p-3 text-center ring-1 ring-inset ring-accent/40 bg-accent/[0.07]">
           <span
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-white"
-            style={{ backgroundColor: creating.type === "folder" ? "#22d3ee" : "#f5b942" }}
+            className="flex h-11 w-11 items-center justify-center rounded-[14px] text-white"
+            style={iconTileStyle(creating.type === "folder" ? "#22d3ee" : "#f5b942")}
           >
-            {creating.type === "folder" ? <Folder size={19} strokeWidth={1.8} /> : <FileText size={19} strokeWidth={1.8} />}
+            {creating.type === "folder" ? <Folder size={20} strokeWidth={1.8} /> : <FileText size={20} strokeWidth={1.8} />}
           </span>
           <InlineNameInput
             value={creatingName}
             onChange={onCreatingNameChange}
             onCommit={onCommitCreate}
             onCancel={onCancelCreate}
-            className="w-full rounded border border-accent/50 bg-background px-1 py-0.5 text-center text-[11.5px] font-medium text-foreground outline-none"
+            className="w-full rounded-md border border-accent/50 bg-background px-1.5 py-1 text-center text-[11.5px] font-medium text-foreground outline-none ring-2 ring-accent/15"
           />
         </div>
       )}
@@ -364,17 +381,21 @@ function GridView({
             onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
             onDoubleClick={() => !isRenaming && onOpen(node)}
             onContextMenu={(e) => { e.stopPropagation(); onContextMenu(e, node); }}
-            className={`group flex flex-col items-center gap-2 rounded-xl p-2.5 text-center transition-all duration-150
+            className={`group relative flex flex-col items-center gap-2.5 rounded-2xl p-3 text-center transition-all duration-150 ease-out
               ${isDragging ? "opacity-40" : ""}
-              ${isDropTarget ? "bg-accent/15 ring-2 ring-inset ring-accent/50 scale-[1.04]"
-                : selected === node.id ? "bg-accent/[0.08] ring-1 ring-inset ring-accent/30"
-                : "hover:bg-black/[0.035] dark:hover:bg-white/[0.045]"}`}
+              ${isDropTarget ? "bg-accent/15 ring-2 ring-inset ring-accent/50 scale-[1.05]"
+                : selected === node.id ? "bg-accent/[0.09] ring-1 ring-inset ring-accent/35 shadow-sm"
+                : "hover:-translate-y-0.5 hover:bg-foreground/[0.04] hover:shadow-md"}`}
           >
             <span
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-white transition-transform duration-150"
-              style={{ backgroundColor: color }}
+              className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-[4px] text-white transition-transform duration-150 ease-out group-hover:scale-105"
+              style={iconTileStyle(color)}
             >
-              <Icon size={19} strokeWidth={1.8} />
+              {isImageNode(node) ? (
+                <ImageThumb node={node} fallback={<Icon size={20} strokeWidth={1.8} />} />
+              ) : (
+                <Icon size={20} strokeWidth={1.8} />
+              )}
             </span>
             {isRenaming ? (
               <InlineNameInput
@@ -382,7 +403,7 @@ function GridView({
                 onChange={onRenamingChange}
                 onCommit={() => onCommitRename(node)}
                 onCancel={onCancelRename}
-                className="w-full rounded border border-accent/50 bg-background px-1 py-0.5 text-center text-[11.5px] font-medium text-foreground outline-none"
+                className="w-full rounded-md border border-accent/50 bg-background px-1.5 py-1 text-center text-[11.5px] font-medium text-foreground outline-none ring-2 ring-accent/15"
               />
             ) : (
               <span className="line-clamp-2 w-full break-words text-[11.5px] font-medium leading-tight text-foreground">{node.name}</span>
@@ -405,26 +426,26 @@ function ListView({
   renamingId, renamingValue, onRenamingChange, onCommitRename, onCancelRename,
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border">
-      <div className="flex items-center gap-2 border-b border-border bg-black/[0.02] px-3.5 py-2 text-[10.5px] font-semibold uppercase tracking-wide text-foreground-secondary/60 dark:bg-white/[0.03]">
+    <div className="overflow-hidden rounded-2xl border border-border shadow-sm">
+      <div className="flex items-center gap-2 border-b border-border bg-foreground/[0.025] px-4 py-2.5 text-[10.5px] font-semibold uppercase tracking-wider text-foreground-secondary/60">
         <span className="flex-1">Name</span>
         <span className="w-20 text-right">Type</span>
       </div>
 
       {creating && (
-        <div className="flex w-full items-center gap-3 border-b border-border/50 bg-accent/[0.06] px-3.5 py-2.5">
+        <div className="animate-fade-in flex w-full items-center gap-3 border-b border-border/50 bg-accent/[0.07] px-4 py-2.5">
           <span
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white"
-            style={{ backgroundColor: creating.type === "folder" ? "#22d3ee" : "#f5b942" }}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-white"
+            style={iconTileStyle(creating.type === "folder" ? "#22d3ee" : "#f5b942")}
           >
-            {creating.type === "folder" ? <Folder size={13} strokeWidth={1.9} /> : <FileText size={13} strokeWidth={1.9} />}
+            {creating.type === "folder" ? <Folder size={14} strokeWidth={1.9} /> : <FileText size={14} strokeWidth={1.9} />}
           </span>
           <InlineNameInput
             value={creatingName}
             onChange={onCreatingNameChange}
             onCommit={onCommitCreate}
             onCancel={onCancelCreate}
-            className="flex-1 rounded border border-accent/50 bg-background px-1.5 py-0.5 text-[13px] text-foreground outline-none"
+            className="flex-1 rounded-md border border-accent/50 bg-background px-2 py-1 text-[13px] text-foreground outline-none ring-2 ring-accent/15"
           />
         </div>
       )}
@@ -438,11 +459,15 @@ function ListView({
             onClick={() => onSelect(node.id)}
             onDoubleClick={() => !isRenaming && onOpen(node)}
             onContextMenu={(e) => onContextMenu(e, node)}
-            className={`flex w-full items-center gap-3 border-b border-border/50 px-3.5 py-2.5 text-left last:border-b-0 transition-colors duration-100
-              ${selected === node.id ? "bg-accent/[0.08]" : "hover:bg-black/[0.03] dark:hover:bg-white/[0.03]"}`}
+            className={`flex w-full items-center gap-3 border-b border-border/50 px-4 py-2.5 text-left last:border-b-0 transition-colors duration-100
+              ${selected === node.id ? "bg-accent/[0.09]" : "hover:bg-foreground/[0.035]"}`}
           >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white" style={{ backgroundColor: color }}>
-              <Icon size={13} strokeWidth={1.9} />
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-[4px] text-white" style={iconTileStyle(color)}>
+              {isImageNode(node) ? (
+                <ImageThumb node={node} fallback={<Icon size={14} strokeWidth={1.9} />} />
+              ) : (
+                <Icon size={14} strokeWidth={1.9} />
+              )}
             </span>
             {isRenaming ? (
               <InlineNameInput
@@ -450,13 +475,15 @@ function ListView({
                 onChange={onRenamingChange}
                 onCommit={() => onCommitRename(node)}
                 onCancel={onCancelRename}
-                className="flex-1 rounded border border-accent/50 bg-background px-1.5 py-0.5 text-[13px] text-foreground outline-none"
+                className="flex-1 rounded-md border border-accent/50 bg-background px-2 py-1 text-[13px] text-foreground outline-none ring-2 ring-accent/15"
               />
             ) : (
               <span className="flex-1 truncate text-[13px] text-foreground">{node.name}</span>
             )}
-            <span className="w-20 shrink-0 text-right text-[10.5px] text-foreground-secondary/55">
-              {node.type === "folder" ? "Folder" : node.imported ? (node.name.split(".").pop()?.toUpperCase() ?? "File") : "Note"}
+            <span className="w-20 shrink-0 text-right">
+              <span className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[10px] font-medium text-foreground-secondary/70">
+                {node.type === "folder" ? "Folder" : node.imported ? (node.name.split(".").pop()?.toUpperCase() ?? "File") : "Note"}
+              </span>
             </span>
           </div>
         );
@@ -465,24 +492,111 @@ function ListView({
   );
 }
 
-function getFileVisualSafe(node) {
-  if (!node.imported) return { icon: FileText, color: "#f5b942" };
+// Per-extension icon + color, grouped by family so related file types read
+// as a coherent set instead of every "other" file collapsing into one grey
+// FileText tile.
+const FILE_VISUALS = [
+  // documents / data
+  { exts: ["pdf"], icon: FileText, color: "#ef4444" },
+  { exts: ["xls", "xlsx", "csv"], icon: FileSpreadsheet, color: "#22c55e" },
+  { exts: ["doc", "docx", "rtf", "odt"], icon: FileText, color: "#2563eb" },
+  { exts: ["ppt", "pptx", "key"], icon: FileText, color: "#f97316" },
+  { exts: ["md", "markdown"], icon: FileText, color: "#64748b" },
+  { exts: ["txt", "log"], icon: FileText, color: "#94a3b8" },
+
+  // images
+  { exts: ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico", "avif"], icon: FileImage, color: "#38bdf8" },
+
+  // audio / video
+  { exts: ["mp3", "wav", "ogg", "flac", "m4a", "aac"], icon: FileAudio2, color: "#a855f7" },
+  { exts: ["mp4", "mov", "webm", "mkv", "avi"], icon: FileVideo2, color: "#f43f5e" },
+
+  // archives
+  { exts: ["zip", "rar", "7z", "tar", "gz", "tgz"], icon: FileArchive, color: "#d97706" },
+
+  // markup / web
+  { exts: ["html", "htm"], icon: FileCode2, color: "#e34c26" },
+  { exts: ["css", "scss", "sass", "less"], icon: FileCode2, color: "#ec4899" },
+  { exts: ["json", "yml", "yaml", "toml"], icon: FileJson2, color: "#eab308" },
+
+  // code
+  { exts: ["jsx", "tsx"], icon: FileCode2, color: "#22d3ee" },
+  { exts: ["js", "mjs", "cjs"], icon: FileCode2, color: "#f7df1e" },
+  { exts: ["ts"], icon: FileCode2, color: "#3178c6" },
+  { exts: ["py"], icon: FileCode2, color: "#3776ab" },
+  { exts: ["java", "kt"], icon: FileCode2, color: "#ea580c" },
+  { exts: ["c", "cpp", "h", "hpp", "cs"], icon: FileCode2, color: "#8b5cf6" },
+  { exts: ["go"], icon: FileCode2, color: "#06b6d4" },
+  { exts: ["rb"], icon: FileCode2, color: "#dc2626" },
+  { exts: ["php"], icon: FileCode2, color: "#7c3aed" },
+  { exts: ["sh", "bash", "zsh"], icon: FileTerminal, color: "#475569" },
+];
+
+const IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico", "avif"];
+
+function isImageNode(node) {
+  if (!node.imported || node.type !== "file") return false;
   const ext = node.name.split(".").pop()?.toLowerCase();
-  if (ext === "pdf") return { icon: FileText, color: "#ef4444" };
-  if (["xls", "xlsx", "csv"].includes(ext)) return { icon: FileSpreadsheet, color: "#22c55e" };
-  if (["png", "jpg", "jpeg", "gif", "webp"].includes(ext)) return { icon: FileImage, color: "#38bdf8" };
+  return IMAGE_EXTS.includes(ext);
+}
+
+// Module-level cache (outside the component, so it survives re-renders and
+// folder navigation within the same session) — nodeId -> data URL. Keeps us
+// from re-downloading the same image every time its folder is opened again.
+const thumbnailCache = new Map();
+
+// Fetches an image's bytes through the authenticated download route (same
+// helper FileViewer uses) and renders it once loaded. Shows the normal
+// colored icon as a placeholder while loading, and permanently on failure
+// (e.g. the file was deleted server-side) so a broken thumbnail never
+// shows a broken-image icon.
+function ImageThumb({ node, fallback }) {
+  const [dataUrl, setDataUrl] = useState(() => thumbnailCache.get(node.id) ?? null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (dataUrl || failed) return;
+    let cancelled = false;
+    fetchFileDataUrl(node.id)
+      .then((url) => {
+        if (cancelled) return;
+        thumbnailCache.set(node.id, url);
+        setDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [node.id, dataUrl, failed]);
+
+  if (!dataUrl || failed) return fallback;
+  return <img src={dataUrl} alt="" draggable={false} className="h-full w-full object-cover" />;
+}
+
+function getFileVisualSafe(node) {
+  // In-app notes (not imported) — keep their existing warm "note" look.
+  if (!node.imported) return { icon: FileText, color: "#f5b942" };
+
+  const ext = node.name.split(".").pop()?.toLowerCase();
+  const match = FILE_VISUALS.find((group) => group.exts.includes(ext));
+  if (match) return { icon: match.icon, color: match.color };
+
+  // Truly unknown extension — neutral fallback, distinct from every
+  // recognized type above so it doesn't get confused with "note".
   return { icon: FileText, color: "#94a3b8" };
 }
 
 function EmptyState({ searching }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/70 text-center">
-      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-black/[0.035] text-foreground-secondary/45 dark:bg-white/[0.045]">
-        {searching ? <Search size={22} /> : <FolderOpen size={22} />}
+    <div className="animate-fade-in flex h-full flex-col items-center justify-center gap-3.5 rounded-2xl border border-dashed border-border/70 text-center">
+      <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-foreground/[0.04] text-foreground-secondary/45 ring-1 ring-inset ring-border">
+        {searching ? <Search size={24} strokeWidth={1.6} /> : <FolderOpen size={24} strokeWidth={1.6} />}
       </span>
       <div>
-        <p className="text-xs font-medium text-foreground-secondary">{searching ? "No matches found" : "This folder is empty"}</p>
-        {!searching && <p className="mt-0.5 text-[11px] text-foreground-secondary/55">Use the header actions above to create or import something</p>}
+        <p className="text-[13px] font-semibold text-foreground-secondary">{searching ? "No matches found" : "This folder is empty"}</p>
+        {!searching && <p className="mt-1 text-[11.5px] text-foreground-secondary/55">Use the header actions above to create or import something</p>}
       </div>
     </div>
   );

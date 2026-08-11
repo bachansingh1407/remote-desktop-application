@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LayoutGrid, Search, Sun, Moon, Settings } from "lucide-react";
 import { useWindowStore, useThemeStore } from "@/app/stores";
 import { TASKBAR_HEIGHT } from "@/app/lib/constants";
+import { getApp } from "@/app/lib/appRegistry";
 import SettingsApp from "@/app/apps/settings/SettingsApp";
 import StartMenu from "./StartMenu";
 import { openCommandPalette } from "@/app/components/common/CommandPalette";
@@ -87,6 +88,12 @@ export default function Taskbar() {
                 <div className="flex flex-1 items-center justify-center gap-1">
                     {windows.map((win) => {
                         const isFocused = win.zIndex === topZIndex && !win.minimized;
+                        // Windows themselves don't carry an icon — look the
+                        // owning app up in the registry (file/viewer windows
+                        // like "file-<id>" won't match, so they keep the
+                        // letter fallback).
+                        const app = getApp(win.id);
+                        const AppIcon = win.icon ?? app?.icon;
                         return (
                             <button
                                 key={win.id}
@@ -98,7 +105,11 @@ export default function Taskbar() {
                           active:bg-black/[0.09] dark:active:bg-white/[0.12]
                           ${isFocused ? "bg-black/[0.08] dark:bg-white/[0.1]" : ""}`}
                             >
-                                {win.icon ? win.icon : <span>{win.title?.charAt(0)?.toUpperCase() ?? "?"}</span>}
+                                {AppIcon ? (
+                                    <AppIcon size={18} strokeWidth={1.6} style={{ color: app?.color }} />
+                                ) : (
+                                    <span>{win.title?.charAt(0)?.toUpperCase() ?? "?"}</span>
+                                )}
 
                                 {/* active indicator — bottom bar, taskbar style */}
                                 <span

@@ -89,3 +89,26 @@ body {
 *::-webkit-scrollbar-thumb:hover {
   background-color: color-mix(in srgb, var(--foreground) 30%, transparent);
 }
+
+
+.animate-fade-in { animation: fade-in 0.15s ease-out; }
+.animate-scale-in { animation: scale-in 0.14s cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* ── window open/close/minimize — macOS-style but just transform+opacity,
+   so it's GPU-composited and costs nothing even with several windows open ── */
+@keyframes window-in {
+  from { opacity: 0; transform: scale(0.9) translateY(16px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes window-out-close {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(0.94) translateY(8px); }
+}
+@keyframes window-out-minimize {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(0.22) translateY(160px); }
+}
+
+.animate-window-in { animation: window-in 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+.animate-window-out-close { animation: window-out-close 0.16s cubic-bezier(0.4, 0, 1, 1) forwards; }
+.animate-window-out-minimize { animation: window-out-minimize 0.22s cubic-bezier(0.4, 0, 1, 1) forwards; transform-origin: bottom center; }

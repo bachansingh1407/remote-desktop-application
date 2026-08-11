@@ -1,15 +1,29 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 import { X, Minus, Square, Copy } from "lucide-react";
 import { TASKBAR_HEIGHT } from "@/app/lib/constants";
+import { getApp } from "@/app/lib/appRegistry";
 
 export default function Window({
-  title, x, y, width, height, minWidth, minHeight, zIndex, maximized,
+  id, title, x, y, width, height, minWidth, minHeight, zIndex, maximized, isFocused = true,
+  exiting = null, // "close" | "minimize" | null — drives the exit animation
   children, onClose, onFocus, onMinimize, onToggleMaximize, onDrag, onResize,
 }) {
   const dragState = useRef(null);
   const resizeState = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+
+
+
+  // Same registry lookup Taskbar uses for its icons — gives every window a
+  // little identity badge instead of a bare text title. File/viewer windows
+  // (id like "file-<id>") won't match, so they just show the title, same
+  // as they do on the taskbar.
+  const app = getApp(id);
+  const AppIcon = app?.icon;
+  const appColor = app?.color ?? "var(--color-accent)";
 
   const handleDragMove = useCallback((e) => {
     if (!dragState.current) return;
@@ -19,6 +33,7 @@ export default function Window({
 
   const handleDragUp = useCallback(() => {
     dragState.current = null;
+    setIsDragging(false);
     window.removeEventListener("pointermove", handleDragMove);
     window.removeEventListener("pointerup", handleDragUp);
   }, [handleDragMove]);
@@ -27,6 +42,7 @@ export default function Window({
     onFocus();
     if (maximized) return;
     dragState.current = { startX: e.clientX, startY: e.clientY, originX: x, originY: y };
+    setIsDragging(true);
     window.addEventListener("pointermove", handleDragMove);
     window.addEventListener("pointerup", handleDragUp);
   }, [x, y, maximized, onFocus, handleDragMove, handleDragUp]);
@@ -41,6 +57,7 @@ export default function Window({
 
   const handleResizeUp = useCallback(() => {
     resizeState.current = null;
+    setIsResizing(false);
     window.removeEventListener("pointermove", handleResizeMove);
     window.removeEventListener("pointerup", handleResizeUp);
   }, [handleResizeMove]);
@@ -50,13 +67,28 @@ export default function Window({
     e.preventDefault();
     onFocus();
     resizeState.current = { startX: e.clientX, startY: e.clientY, originW: width, originH: height };
+    setIsResizing(true);
     window.addEventListener("pointermove", handleResizeMove);
     window.addEventListener("pointerup", handleResizeUp);
   }, [width, height, onFocus, handleResizeMove, handleResizeUp]);
 
+  const lifted = isDragging || isResizing;
+
+
+  // Mac-style open/close/minimize: mount plays a pop-in, closing plays a
+  // quick fade+settle, minimizing shrinks down toward the taskbar. All three
+  // are pure transform+opacity keyframes (see globals.css) — no JS driving
+  // the motion, so it stays cheap with several windows animating at once.
+  const exitAnim =
+    exiting === "close"
+      ? "animate-window-out-close"
+      : exiting === "minimize"
+        ? "animate-window-out-minimize"
+        : "animate-window-in";
+
   return (
     <div
-      onPointerDown={onFocus}
+      onPointerDown={exiting ? undefined : onFocus}
       style={{
         fontFamily:
           '"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif',
@@ -65,52 +97,77 @@ export default function Window({
           ? { top: 0, left: 0, right: 0, bottom: TASKBAR_HEIGHT, zIndex }
           : { top: y, left: x, width, height, minWidth, minHeight, zIndex }),
       }}
-      className="fixed flex flex-col overflow-hidden rounded-xl
-                 border border-border
-                 bg-background-elevated backdrop-blur-2xl backdrop-saturate-150
-                 shadow-[0_14px_40px_rgba(0,0,0,0.20)] dark:shadow-[0_14px_40px_rgba(0,0,0,0.55)]"
+      className={`${exitAnim} fixed flex flex-col overflow-hidden rounded-xl
+                 border bg-background-elevated backdrop-blur-2xl backdrop-saturate-150
+                 transition-shadow duration-200 ease-out
+                 ${exiting ? "pointer-events-none" : ""}
+                 ${lifted
+          ? "border-border shadow-[0_26px_64px_rgba(0,0,0,0.34)] dark:shadow-[0_26px_64px_rgba(0,0,0,0.72)]"
+          : isFocused
+            ? "border-border shadow-[0_18px_48px_rgba(0,0,0,0.24)] dark:shadow-[0_18px_48px_rgba(0,0,0,0.6)]"
+            : "border-border/60 shadow-[0_8px_22px_rgba(0,0,0,0.14)] dark:shadow-[0_8px_22px_rgba(0,0,0,0.4)]"}`}
     >
       <div
         onPointerDown={handleDragDown}
         onDoubleClick={onToggleMaximize}
-        className="flex h-9 shrink-0 cursor-grab items-center justify-between
-                   pl-3.5 pr-1.5 active:cursor-grabbing select-none"
+        className="relative flex h-10 shrink-0 cursor-grab items-center justify-between
+                   pl-2.5 pr-1.5 active:cursor-grabbing select-none"
       >
-        <span className="truncate text-[12.5px] font-medium text-foreground">
-          {title}
-        </span>
+        {/* faint top highlight — reads as glass catching light */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/[0.08]" />
+
+        <div className={`flex min-w-0 items-center gap-2 transition-opacity duration-200 ${isFocused ? "opacity-100" : "opacity-50"}`}>
+          {AppIcon && (
+            <span
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] text-white"
+              style={{
+                background: `linear-gradient(155deg, ${appColor}, color-mix(in srgb, ${appColor} 78%, black))`,
+                boxShadow: `0 2px 6px -2px ${appColor}90`,
+              }}
+            >
+              <AppIcon size={11} strokeWidth={2.1} />
+            </span>
+          )}
+          <span className="truncate text-[12.5px] font-medium text-foreground">
+            {title}
+          </span>
+        </div>
 
         <div className="flex h-full items-center gap-0.5">
           <button
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onMinimize}
+            title="Minimize"
             className="flex h-6 w-6 items-center justify-center rounded-md
-                       text-foreground-secondary hover:bg-black/[0.06] hover:text-foreground dark:hover:bg-white/[0.08]
-                       active:bg-black/[0.09] dark:active:bg-white/[0.12]"
+                       text-foreground-secondary transition-all duration-100
+                       hover:bg-foreground/[0.08] hover:text-foreground active:scale-90"
           >
-            <Minus size={13} strokeWidth={1.75} />
+            <Minus size={13} strokeWidth={1.9} />
           </button>
           <button
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onToggleMaximize}
+            title={maximized ? "Restore" : "Maximize"}
             className="flex h-6 w-6 items-center justify-center rounded-md
-                       text-foreground-secondary hover:bg-black/[0.06] hover:text-foreground dark:hover:bg-white/[0.08]
-                       active:bg-black/[0.09] dark:active:bg-white/[0.12]"
+                       text-foreground-secondary transition-all duration-100
+                       hover:bg-foreground/[0.08] hover:text-foreground active:scale-90"
           >
-            {maximized ? <Copy size={11} strokeWidth={1.75} /> : <Square size={10} strokeWidth={1.75} />}
+            {maximized ? <Copy size={11} strokeWidth={1.9} /> : <Square size={10} strokeWidth={1.9} />}
           </button>
           <button
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onClose}
+            title="Close"
             className="flex h-6 w-6 items-center justify-center rounded-md
-                       text-foreground-secondary hover:bg-red-500 hover:text-white active:bg-red-600"
+                       text-foreground-secondary transition-all duration-100
+                       hover:bg-red-500 hover:text-white active:scale-90 active:bg-red-600"
           >
-            <X size={13} strokeWidth={1.75} />
+            <X size={13} strokeWidth={1.9} />
           </button>
         </div>
       </div>
 
-      <div className="h-px shrink-0 bg-border" />
+      <div className={`h-px shrink-0 transition-colors duration-200 ${isFocused ? "bg-border" : "bg-border/50"}`} />
 
       <div className="flex-1 overflow-auto bg-background-secondary/40 dark:bg-black/20 text-foreground">
         {children}
@@ -120,10 +177,12 @@ export default function Window({
         <div
           onPointerDown={handleResizeDown}
           style={{ touchAction: "none" }}
-          className="absolute bottom-0.5 right-0.5 z-10 h-5 w-5 cursor-nwse-resize select-none"
+          className="group absolute bottom-0 right-0 z-10 h-6 w-6 cursor-nwse-resize select-none"
         >
-          <svg viewBox="0 0 16 16" className="h-full w-full opacity-40 pointer-events-none">
-            <path d="M14 2 L2 14 M14 8 L8 14 M14 14 L14 14" stroke="var(--foreground)" strokeWidth="1.2" />
+          <svg viewBox="0 0 16 16" className="pointer-events-none absolute bottom-1 right-1 h-3 w-3 opacity-30 transition-opacity duration-150 group-hover:opacity-70">
+            <circle cx="13" cy="13" r="1.1" fill="var(--foreground)" />
+            <circle cx="9" cy="13" r="1.1" fill="var(--foreground)" />
+            <circle cx="13" cy="9" r="1.1" fill="var(--foreground)" />
           </svg>
         </div>
       )}
