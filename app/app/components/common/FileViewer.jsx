@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Download } from "lucide-react";
 import { useFileSystemStore } from "@/app/stores";
 import { fetchFileDataUrl } from "@/app/lib/axios";
 
@@ -16,9 +16,18 @@ const CodePreview = dynamic(() => import("./CodePreview"), {
   loading: () => <div className="flex h-full items-center justify-center text-xs text-foreground-secondary">Loading preview...</div>,
 });
 
-// What special-case viewer (if any) this node needs. "html"/"jsx" get the
-// split code+preview view; anything else imported falls through to the
-// generic "no inline preview" branch below.
+const DocxPreview = dynamic(() => import("./DocxPreview"), {
+  ssr: false,
+  loading: () => <div className="flex h-full items-center justify-center text-xs text-foreground-secondary">Loading document...</div>,
+});
+
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const LEGACY_DOC_MIME = "application/msword";
+
+// What special-case viewer (if any) this node needs. "html"/"jsx"/"tsx" get
+// the split code+preview view, "docx"/"doc" get the rendered-document view,
+// anything else imported falls through to the generic "no inline preview"
+// branch below (which now offers a direct download instead of a dead end).
 function getPreviewKind(node) {
   if (!node?.imported) return null;
   if (node.mimeType?.startsWith("image/")) return "image";
@@ -26,6 +35,9 @@ function getPreviewKind(node) {
   const name = (node.name || "").toLowerCase();
   if (name.endsWith(".html") || name.endsWith(".htm")) return "html";
   if (name.endsWith(".jsx")) return "jsx";
+  if (name.endsWith(".tsx")) return "tsx";
+  if (node.mimeType === DOCX_MIME || name.endsWith(".docx")) return "docx";
+  if (node.mimeType === LEGACY_DOC_MIME || name.endsWith(".doc")) return "doc";
   return null;
 }
 
@@ -39,8 +51,10 @@ export default function FileViewer({ fileId }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const isCode = kind === "html" || kind === "jsx";
-  const needsFetch = kind === "image" || kind === "pdf" || isCode;
+  const isCode = kind === "html" || kind === "jsx" || kind === "tsx";
+  // "doc" (legacy binary Word) never fetches — DocxPreview shows a static
+  // "download instead" message for it without touching the network.
+  const needsFetch = kind === "image" || kind === "pdf" || kind === "docx" || isCode;
 
   useEffect(() => {
     if (!needsFetch) return;
@@ -123,16 +137,35 @@ export default function FileViewer({ fileId }) {
     return <CodePreview code={codeText} kind={kind} fileName={node.name} />;
   }
 
+  if (kind === "docx" || kind === "doc") {
+    return (
+      <DocxPreview
+        dataUrl={dataUrl}
+        fileName={node.name}
+        isLegacyDoc={kind === "doc"}
+        onDownload={() => downloadNode(node)}
+      />
+    );
+  }
+
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
       <div className="flex-1 overflow-auto p-4">
         {kind === "image" ? (
           <img src={dataUrl} alt={node.name} className="mx-auto max-w-full rounded-md" />
         ) : node.imported ? (
-          <div className="flex h-full items-center justify-center text-center text-xs text-foreground-secondary">
-            No inline preview for this file type ({node.mimeType || "unknown"}).
-            <br />
-            {((node.size || 0) / 1024).toFixed(1)} KB
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-xs text-foreground-secondary">
+            <div>
+              No inline preview for this file type ({node.mimeType || "unknown"}).
+              <br />
+              {((node.size || 0) / 1024).toFixed(1)} KB
+            </div>
+            <button
+              onClick={() => downloadNode(node)}
+              className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:opacity-90"
+            >
+              <Download size={13} /> Download
+            </button>
           </div>
         ) : (
           <p className="whitespace-pre-wrap text-xs text-foreground-secondary">{node.content || "(empty file)"}</p>
@@ -140,4 +173,23 @@ export default function FileViewer({ fileId }) {
       </div>
     </div>
   );
+}
+
+// Triggers a real browser download (as opposed to the inline preview
+// fetch) for file types with nothing to render — reuses the same
+// authenticated fetchFileDataUrl() helper, then clicks a throwaway <a>.
+async function downloadNode(node) {
+  try {
+    const url = await fetchFileDataUrl(node.id);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = node.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch {
+    // fetchFileDataUrl already surfaces network errors elsewhere in this
+    // component for the inline-preview path; a failed manual download
+    // here just silently no-ops rather than throwing in an event handler.
+  }
 }

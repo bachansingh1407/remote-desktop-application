@@ -1,14 +1,9 @@
-const fs = require("fs/promises");
-const path = require("path");
-const crypto = require("crypto");
+const axios = require("axios");
 
 const prisma = require("../config/db");
-const env = require("../config/env");
 const ApiError = require("../utils/ApiError");
 const { NODE_TYPES } = require("../constants");
 const storageService = require("./storage.service");
-
-const uploadRoot = path.join(process.cwd(), env.uploadDir);
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -119,20 +114,19 @@ async function assertFolderAndUsable(parentId, ownerId) {
 }
 
 /**
- * Delete locally stored files.
+ * Delete uploaded files from ImageKit (the actual storage backend — see
+ * storage.service.js). Takes ImageKit file IDs, not storagePath URLs:
+ * ImageKit's delete API is keyed by fileId, not by the public URL.
  *
- * This is intentionally tolerant: if a file has already disappeared
- * from disk, deletion continues normally.
+ * Intentionally tolerant: if a file was already removed (or the id is
+ * stale), deletion continues for the rest of the batch instead of
+ * failing the whole trash/delete operation.
  */
-async function deleteFilesFromDisk(storagePaths) {
+async function deleteFilesFromStorage(imagekitFileIds) {
   await Promise.all(
-    storagePaths
+    imagekitFileIds
       .filter(Boolean)
-      .map((storagePath) =>
-        fs
-          .unlink(path.join(uploadRoot, storagePath))
-          .catch(() => {})
-      )
+      .map((fileId) => storageService.deleteFile(fileId).catch(() => {}))
   );
 }
 
@@ -538,29 +532,37 @@ async function duplicateNode(id, ownerId) {
   }
 
   let newStoragePath = null;
+  let newImagekitFileId = null;
+  let newThumbnailUrl = null;
 
   if (node.storagePath) {
-    const ext = path.extname(
-      node.storagePath
-    );
-
-    newStoragePath = `${crypto.randomUUID()}${ext}`;
-
+    // Storage is ImageKit (remote), not local disk — "copying" a file
+    // means downloading its bytes and re-uploading them as a new asset,
+    // so trashing/deleting one copy can never orphan the other's pointer.
     try {
-      await fs.copyFile(
-        path.join(
-          uploadRoot,
-          node.storagePath
-        ),
-        path.join(
-          uploadRoot,
-          newStoragePath
-        )
+      const source = await axios.get(node.storagePath, {
+        responseType: "arraybuffer",
+      });
+
+      const uploaded = await storageService.uploadFile(
+        {
+          buffer: Buffer.from(source.data),
+          originalname: node.name,
+          mimetype: node.mimeType || "application/octet-stream",
+        },
+        ownerId
       );
+
+      newStoragePath = uploaded.url;
+      newImagekitFileId = uploaded.fileId;
+      newThumbnailUrl = uploaded.thumbnailUrl;
     } catch (error) {
-      // If the storage path is remote (for example ImageKit),
-      // don't crash the entire duplication operation.
+      // Don't crash the entire duplication operation if the re-upload
+      // fails (e.g. transient network issue) — the duplicate still gets
+      // created, just without its own copy of the underlying file.
       newStoragePath = null;
+      newImagekitFileId = null;
+      newThumbnailUrl = null;
     }
   }
 
@@ -574,6 +576,8 @@ async function duplicateNode(id, ownerId) {
       mimeType: node.mimeType,
       size: node.size,
       storagePath: newStoragePath,
+      imagekitFileId: newImagekitFileId,
+      thumbnailUrl: newThumbnailUrl,
     },
   });
 }
@@ -820,12 +824,12 @@ async function deleteForever(id, ownerId) {
           in: ids,
         },
         ownerId,
-        storagePath: {
+        imagekitFileId: {
           not: null,
         },
       },
       select: {
-        storagePath: true,
+        imagekitFileId: true,
       },
     });
 
@@ -840,9 +844,9 @@ async function deleteForever(id, ownerId) {
     });
   }
 
-  await deleteFilesFromDisk(
+  await deleteFilesFromStorage(
     filesToRemove.map(
-      (file) => file.storagePath
+      (file) => file.imagekitFileId
     )
   );
 
@@ -863,7 +867,7 @@ async function emptyTrash(ownerId) {
       },
       select: {
         id: true,
-        storagePath: true,
+        imagekitFileId: true,
       },
     });
 
@@ -874,9 +878,9 @@ async function emptyTrash(ownerId) {
     },
   });
 
-  await deleteFilesFromDisk(
+  await deleteFilesFromStorage(
     trashedNodes.map(
-      (node) => node.storagePath
+      (node) => node.imagekitFileId
     )
   );
 

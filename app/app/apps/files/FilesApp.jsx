@@ -420,20 +420,40 @@ function GridView({
   );
 }
 
+function formatBytes(bytes) {
+  if (!bytes || bytes <= 0) return "—";
+  const units = ["B", "KB", "MB", "GB"];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / Math.pow(1024, i);
+  return `${i === 0 ? value : value.toFixed(value < 10 ? 1 : 0)} ${units[i]}`;
+}
+
+function formatModified(ts) {
+  if (!ts) return "—";
+  const date = new Date(ts);
+  const now = new Date();
+  const sameDay = date.toDateString() === now.toDateString();
+  if (sameDay) return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const sameYear = date.getFullYear() === now.getFullYear();
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: sameYear ? undefined : "numeric" });
+}
+
 function ListView({
   items, selected, onSelect, onOpen, onContextMenu,
   creating, creatingName, onCreatingNameChange, onCommitCreate, onCancelCreate,
   renamingId, renamingValue, onRenamingChange, onCommitRename, onCancelRename,
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border shadow-sm">
-      <div className="flex items-center gap-2 border-b border-border bg-foreground/[0.025] px-4 py-2.5 text-[10.5px] font-semibold uppercase tracking-wider text-foreground-secondary/60">
-        <span className="flex-1">Name</span>
-        <span className="w-20 text-right">Type</span>
+    <div className="overflow-hidden rounded-2xl border border-border bg-background-secondary/40 shadow-[0_1px_2px_rgba(0,0,0,0.04)] backdrop-blur-sm">
+      <div className="sticky top-0 z-[1] flex items-center gap-3 border-b border-border bg-background-elevated/95 px-4 py-2.5 text-[10.5px] font-semibold uppercase tracking-wider text-foreground-secondary/55 backdrop-blur-xl">
+        <span className="flex-1 pl-[3px]">Name</span>
+        <span className="hidden w-24 text-right sm:block">Size</span>
+        <span className="hidden w-28 text-right md:block">Modified</span>
+        <span className="w-16 text-right">Kind</span>
       </div>
 
       {creating && (
-        <div className="animate-fade-in flex w-full items-center gap-3 border-b border-border/50 bg-accent/[0.07] px-4 py-2.5">
+        <div className="animate-fade-in flex w-full items-center gap-3 border-b border-border/40 bg-accent/[0.07] px-4 py-2.5">
           <span
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-white"
             style={iconTileStyle(creating.type === "folder" ? "#22d3ee" : "#f5b942")}
@@ -453,22 +473,34 @@ function ListView({
       {items.map((node) => {
         const { icon: Icon, color } = node.type === "folder" ? { icon: Folder, color: "#22d3ee" } : getFileVisualSafe(node);
         const isRenaming = renamingId === node.id;
+        const isSelected = selected === node.id;
+        const kindLabel = node.type === "folder" ? "Folder" : node.imported ? (node.name.split(".").pop()?.toUpperCase() ?? "File") : "Note";
         return (
           <div
             key={node.id}
             onClick={() => onSelect(node.id)}
             onDoubleClick={() => !isRenaming && onOpen(node)}
             onContextMenu={(e) => onContextMenu(e, node)}
-            className={`flex w-full items-center gap-3 border-b border-border/50 px-4 py-2.5 text-left last:border-b-0 transition-colors duration-100
-              ${selected === node.id ? "bg-accent/[0.09]" : "hover:bg-foreground/[0.035]"}`}
+            className={`group relative flex w-full items-center gap-3 border-b border-border/40 py-2 pl-4 pr-4 text-left transition-colors duration-100 last:border-b-0
+              ${isSelected ? "bg-accent/[0.08]" : "hover:bg-foreground/[0.03]"}`}
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-[4px] text-white" style={iconTileStyle(color)}>
+            {/* left accent bar — reads as "selected" without flattening the row into a solid tint */}
+            <span
+              className={`absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-accent transition-opacity duration-150
+                ${isSelected ? "opacity-100" : "opacity-0"}`}
+            />
+
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-[10px] text-white transition-transform duration-150 ease-out group-hover:scale-[1.04]"
+              style={iconTileStyle(color)}
+            >
               {isImageNode(node) ? (
                 <ImageThumb node={node} fallback={<Icon size={14} strokeWidth={1.9} />} />
               ) : (
                 <Icon size={14} strokeWidth={1.9} />
               )}
             </span>
+
             {isRenaming ? (
               <InlineNameInput
                 value={renamingValue}
@@ -478,11 +510,24 @@ function ListView({
                 className="flex-1 rounded-md border border-accent/50 bg-background px-2 py-1 text-[13px] text-foreground outline-none ring-2 ring-accent/15"
               />
             ) : (
-              <span className="flex-1 truncate text-[13px] text-foreground">{node.name}</span>
+              <span className={`flex-1 truncate text-[13px] leading-none text-foreground ${isSelected ? "font-medium" : ""}`}>{node.name}</span>
             )}
-            <span className="w-20 shrink-0 text-right">
-              <span className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[10px] font-medium text-foreground-secondary/70">
-                {node.type === "folder" ? "Folder" : node.imported ? (node.name.split(".").pop()?.toUpperCase() ?? "File") : "Note"}
+
+            <span className="hidden w-24 shrink-0 text-right text-[11.5px] tabular-nums text-foreground-secondary/70 sm:block">
+              {node.type === "folder" ? "—" : formatBytes(node.size)}
+            </span>
+            <span className="hidden w-28 shrink-0 text-right text-[11.5px] tabular-nums text-foreground-secondary/70 md:block">
+              {formatModified(node.updatedAt)}
+            </span>
+            <span className="w-16 shrink-0 text-right">
+              <span
+                className="inline-block rounded-full px-2 py-0.5 text-[10px] font-medium"
+                style={{
+                  background: `color-mix(in srgb, ${color} 16%, transparent)`,
+                  color: `color-mix(in srgb, ${color} 65%, black)`,
+                }}
+              >
+                {kindLabel}
               </span>
             </span>
           </div>
