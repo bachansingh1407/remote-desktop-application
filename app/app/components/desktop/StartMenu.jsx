@@ -89,14 +89,14 @@ export default function StartMenu({ open, onClose }) {
         <div
             ref={menuRef}
             style={{ bottom: TASKBAR_HEIGHT + 10 }}
-            className="fixed left-3 z-[10001] w-[420px] overflow-hidden rounded-2xl
+            className="fixed left-3 z-[10001] w-[420px] overflow-hidden rounded-lg
                  border border-border bg-background-elevated
                  backdrop-blur-2xl backdrop-saturate-150
                  shadow-[0_24px_64px_rgba(0,0,0,0.45)] animate-scale-in"
         >
             {/* header — greeting + avatar, sets the tone the way a real start
                 menu does before you even start typing */}
-            <div className="flex items-center gap-3 px-4 pb-3 pt-4">
+            {/* <div className="flex items-center gap-3 px-4 pb-3 pt-4">
                 <div
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[15px] font-medium text-white ring-1 ring-black/5"
                     style={{
@@ -115,10 +115,10 @@ export default function StartMenu({ open, onClose }) {
                         {user?.email ?? "Signed in"}
                     </p>
                 </div>
-            </div>
+            </div> */}
 
             {/* search */}
-            <div className="px-4 pb-3">
+            <div className="px-4 pb-3 pt-5">
                 <div className="relative">
                     <Search
                         size={15}
@@ -160,11 +160,10 @@ export default function StartMenu({ open, onClose }) {
                                 disabled={app.comingSoon}
                                 title={app.comingSoon ? `${app.title} — coming soon` : app.title}
                                 className={`group flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 text-center
-                            transition-colors ${
-                                    app.comingSoon
+                            transition-colors ${app.comingSoon
                                         ? "cursor-not-allowed opacity-40"
                                         : "hover:bg-black/[0.05] dark:hover:bg-white/[0.06]"
-                                }`}
+                                    }`}
                             >
                                 <span
                                     className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm
@@ -200,6 +199,9 @@ export default function StartMenu({ open, onClose }) {
                     </span>
                     <span className="text-[11.5px] text-foreground-secondary">
                         {user?.name ?? "Guest"}
+                        <p className="truncate text-[11px] font-medium text-foreground-secondary">
+                            {user?.email ?? "Signed in"}
+                        </p>
                     </span>
                 </div>
 

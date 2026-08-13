@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { LayoutGrid, Search, Sun, Moon, Settings, Monitor } from "lucide-react";
+import { LayoutGrid, Search, Sun, Moon, Settings, Monitor, TvMinimal } from "lucide-react";
 import { useWindowStore, useThemeStore } from "@/app/stores";
 import { TASKBAR_HEIGHT } from "@/app/lib/constants";
 import { getApp } from "@/app/lib/appRegistry";
@@ -105,16 +105,16 @@ export default function Taskbar() {
                         title="Start"
                     >
                         <span
-                            className={`flex h-6 w-6 items-center justify-center rounded-md text-white transition-transform
-                          ${startMenuOpen ? "scale-95" : "group-hover:scale-105"}`}
+                            className={`flex h-8 w-8 items-center justify-center rounded-md text-white transition-transform cursor-pointer
+                          ${startMenuOpen ? "scale-95" : "group-hover:scale-100"}`}
                             style={{
                                 background:
                                     "linear-gradient(155deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 55%, black))",
                             }}
                         >
-                            <LayoutGrid size={13} strokeWidth={2} />
+                            <TvMinimal size={18} strokeWidth={2} />
                         </span>
-                        <span className="hidden text-[12.5px] font-medium sm:inline">Campus</span>
+                        {/* <span className="hidden text-[12.5px] font-medium sm:inline">Campus</span> */}
                     </button>
 
                     {/* search — opens the command palette (Ctrl/Cmd+K also works anywhere) */}
@@ -130,9 +130,9 @@ export default function Taskbar() {
                     >
                         <Search size={14} strokeWidth={1.75} className="shrink-0" />
                         <span className="hidden truncate text-[12px] md:inline">Search Campus</span>
-                        <kbd className="ml-auto hidden shrink-0 rounded border border-border/80 bg-black/[0.04] px-1.5 py-0.5 text-[9.5px] text-foreground-secondary/70 lg:inline dark:bg-white/[0.06]">
+                        {/* <kbd className="ml-auto hidden shrink-0 rounded border border-border/80 bg-black/[0.04] px-1.5 py-0.5 text-[9.5px] text-foreground-secondary/70 lg:inline dark:bg-white/[0.06]">
                             ⌘K
-                        </kbd>
+                        </kbd> */}
                     </button>
 
                     {/* running apps — centered, pinned-taskbar style */}
