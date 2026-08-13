@@ -8,3 +8,4 @@ export { useSystemActionsStore } from "./systemActionsStore";
 export { useToastStore, toast } from "./useToastStore";
 export { useTasksStore } from "./useTasksStore";
 export { useSnippetsStore, LANGUAGES } from "./useSnippetsStore";
+export { useWebAppsStore } from "./useWebAppsStore";

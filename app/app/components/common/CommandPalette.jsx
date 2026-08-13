@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Search, CornerDownLeft, Folder, FileText, LayoutGrid } from "lucide-react";
 import { useWindowStore, useFileSystemStore } from "@/app/stores";
-import { APP_REGISTRY } from "@/app/lib/appRegistry";
+import { APP_REGISTRY, useAllApps } from "@/app/lib/appRegistry";
 import dynamic from "next/dynamic";
 import FileEditor from "./FileEditor";
 
@@ -65,10 +65,12 @@ export default function CommandPalette() {
     if (open) setTimeout(() => inputRef.current?.focus(), 30);
   }, [open]);
 
+  const allApps = useAllApps();
+
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
 
-    const appResults = APP_REGISTRY.filter((a) => !a.comingSoon && a.component)
+    const appResults = allApps.filter((a) => !a.comingSoon && a.component)
       .filter((a) => !q || a.title.toLowerCase().includes(q))
       .slice(0, 6)
       .map((a) => ({ kind: "app", id: `app-${a.id}`, app: a }));
@@ -81,7 +83,7 @@ export default function CommandPalette() {
       : [];
 
     return [...appResults, ...fileResults];
-  }, [query, items]);
+  }, [query, items, allApps]);
 
   const launchApp = useCallback(
     (app) => {

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Search, Power, LogOut, Grid3x3, Pin } from "lucide-react";
 import { useWindowStore, useAuthStore } from "@/app/stores";
 import { TASKBAR_HEIGHT } from "@/app/lib/constants";
-import { APP_REGISTRY } from "@/app/lib/appRegistry";
+import { useAllApps } from "@/app/lib/appRegistry";
 import { getGreeting } from "@/app/lib/utils/greeting";
 
 export default function StartMenu({ open, onClose }) {
@@ -54,16 +54,18 @@ export default function StartMenu({ open, onClose }) {
         }
     }, [open]);
 
+    const allApps = useAllApps();
+
     const filteredApps = useMemo(() => {
-        if (!query.trim()) return APP_REGISTRY;
-        return APP_REGISTRY.filter((app) =>
+        if (!query.trim()) return allApps;
+        return allApps.filter((app) =>
             app.title.toLowerCase().includes(query.toLowerCase())
         );
-    }, [query]);
+    }, [query, allApps]);
 
-    const pinnedApps = useMemo(() => APP_REGISTRY.filter((a) => a.pinned), []);
+    const pinnedApps = useMemo(() => allApps.filter((a) => a.pinned), [allApps]);
     const isSearching = query.trim().length > 0;
-    const visibleApps = isSearching ? filteredApps : tab === "pinned" ? pinnedApps : APP_REGISTRY;
+    const visibleApps = isSearching ? filteredApps : tab === "pinned" ? pinnedApps : allApps;
 
     const firstName = user?.name?.trim()?.split(" ")[0];
     const initial = user?.name?.trim()?.charAt(0)?.toUpperCase() ?? "C";
@@ -89,14 +91,14 @@ export default function StartMenu({ open, onClose }) {
         <div
             ref={menuRef}
             style={{ bottom: TASKBAR_HEIGHT + 10 }}
-            className="fixed left-3 z-[10001] w-[420px] overflow-hidden rounded-lg
+            className="fixed left-3 z-[10001] w-[420px] overflow-hidden rounded-2xl
                  border border-border bg-background-elevated
                  backdrop-blur-2xl backdrop-saturate-150
                  shadow-[0_24px_64px_rgba(0,0,0,0.45)] animate-scale-in"
         >
             {/* header — greeting + avatar, sets the tone the way a real start
                 menu does before you even start typing */}
-            {/* <div className="flex items-center gap-3 px-4 pb-3 pt-4">
+            <div className="flex items-center gap-3 px-4 pb-3 pt-4">
                 <div
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[15px] font-medium text-white ring-1 ring-black/5"
                     style={{
@@ -115,10 +117,10 @@ export default function StartMenu({ open, onClose }) {
                         {user?.email ?? "Signed in"}
                     </p>
                 </div>
-            </div> */}
+            </div>
 
             {/* search */}
-            <div className="px-4 pb-3 pt-5">
+            <div className="px-4 pb-3">
                 <div className="relative">
                     <Search
                         size={15}
@@ -160,10 +162,11 @@ export default function StartMenu({ open, onClose }) {
                                 disabled={app.comingSoon}
                                 title={app.comingSoon ? `${app.title} — coming soon` : app.title}
                                 className={`group flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 text-center
-                            transition-colors ${app.comingSoon
+                            transition-colors ${
+                                    app.comingSoon
                                         ? "cursor-not-allowed opacity-40"
                                         : "hover:bg-black/[0.05] dark:hover:bg-white/[0.06]"
-                                    }`}
+                                }`}
                             >
                                 <span
                                     className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm
@@ -199,9 +202,6 @@ export default function StartMenu({ open, onClose }) {
                     </span>
                     <span className="text-[11.5px] text-foreground-secondary">
                         {user?.name ?? "Guest"}
-                        <p className="truncate text-[11px] font-medium text-foreground-secondary">
-                            {user?.email ?? "Signed in"}
-                        </p>
                     </span>
                 </div>
 

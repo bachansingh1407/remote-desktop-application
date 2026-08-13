@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useWindowStore, useSettingsStore } from "@/app/stores";
-import { APP_REGISTRY } from "@/app/lib/appRegistry";
+import { useAllApps } from "@/app/lib/appRegistry";
 
 const ICON_SIZE_MAP = {
   small: { cell: 92, tile: 46, icon: 21, text: "10.5px" },
@@ -27,7 +27,7 @@ export default function DesktopIconGrid() {
   const openWindow = useWindowStore((s) => s.openWindow);
   const iconSize = useSettingsStore((s) => s.iconSize);
 
-  const desktopApps = APP_REGISTRY.filter((a) => a.showOnDesktop);
+  const desktopApps = useAllApps().filter((a) => a.showOnDesktop);
   const size = ICON_SIZE_MAP[iconSize] ?? ICON_SIZE_MAP.medium;
 
   const handleLaunch = useCallback(

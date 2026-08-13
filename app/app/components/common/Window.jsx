@@ -137,7 +137,7 @@ export default function Window({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onMinimize}
             title="Minimize"
-            className="flex h-8 w-8 items-center justify-center rounded-sm
+            className="flex h-6 w-6 items-center justify-center rounded-sm
                        text-foreground-secondary transition-all duration-100
                        hover:bg-foreground/[0.08] hover:text-foreground active:scale-90"
           >
@@ -147,7 +147,7 @@ export default function Window({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onToggleMaximize}
             title={maximized ? "Restore" : "Maximize"}
-            className="flex h-8 w-8 items-center justify-center rounded-sm
+            className="flex h-6 w-6 items-center justify-center rounded-sm
                        text-foreground-secondary transition-all duration-100
                        hover:bg-foreground/[0.08] hover:text-foreground active:scale-90"
           >
@@ -157,7 +157,7 @@ export default function Window({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onClose}
             title="Close"
-            className="flex h-8 w-8 items-center justify-center rounded-sm
+            className="flex h-6 w-6 items-center justify-center rounded-sm
                        text-foreground-secondary transition-all duration-100
                        hover:bg-red-500 hover:text-white active:scale-90 active:bg-red-600"
           >

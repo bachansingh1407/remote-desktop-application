@@ -12,12 +12,9 @@ import {
   useSystemActionsStore,
 } from "@/app/stores";
 import { getAIResponse } from "@/app/lib/mockAiEngine";
-import dynamic from "next/dynamic";
 import { useContextMenu } from "@/app/components/common/ContextMenu";
-import FileEditor from "@/app/components/common/FileEditor";
 import CommandGuidePanel from "@/app/components/common/CommandGuidePanel";
-
-const FileViewer = dynamic(() => import("../../components/common/FileViewer"), { ssr: false });
+import { getFileWindowContent, getFileWindowSize } from "@/app/lib/fileOpeners";
 
 const SUGGESTED_PROMPTS = [
   "What's in my workspace?",
@@ -107,9 +104,8 @@ export default function AIAssistantApp() {
     openWindow({
       id: `file-${node.id}`,
       title: node.name,
-      content: node.imported ? <FileViewer fileId={node.id} /> : <FileEditor fileId={node.id} />,
-      width: 700,
-      height: 480,
+      content: getFileWindowContent(node),
+      ...getFileWindowSize(node),
     });
   };
 
