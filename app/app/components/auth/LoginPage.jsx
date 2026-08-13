@@ -144,9 +144,7 @@ export default function LoginPage() {
       <p className="absolute bottom-5 right-6 text-[10.5px] text-white/35 animate-fade-in">
         © {now.getFullYear()} Campus
       </p>
-      <p className="absolute bottom-5 left-6 max-w-[220px] text-[10.5px] leading-snug text-white/35 animate-fade-in">
-        No public sign-up — accounts are provisioned by an administrator.
-      </p>
+
 
       {/* ── main stack ─────────────────────────────────────────────── */}
       <div className="relative flex w-full max-w-sm flex-col items-center px-6 text-center">
@@ -281,6 +279,16 @@ export default function LoginPage() {
             </p>
           )}
         </form>
+
+        <button
+          type="button"
+          onClick={() => router.push("/register")}
+          disabled={isSubmitting}
+          className="mt-6 text-[12.5px] text-white/45 transition-colors hover:text-white/80 disabled:opacity-40 animate-fade-in"
+          style={{ animationDelay: "180ms", animationFillMode: "backwards" }}
+        >
+          New here? <span className="text-white/80">Create an account</span>
+        </button>
       </div>
 
       {/* keyframes local to this screen — kept out of globals.css since

@@ -1,8 +1,27 @@
 import axios from "axios";
 import { useAuthStore } from "../stores/useAuthStore";
 
+// NEXT_PUBLIC_API_URL is the primary target (set this to wherever the
+// backend actually is — localhost:5000 for local dev, your Render URL in
+// production). NEXT_PUBLIC_API_EXTERNAL_URL is kept as a fallback only —
+// previously it was defined in .env.local but never read anywhere, so a
+// deployed frontend would silently keep hitting localhost:5000 and every
+// request (including login) would fail with a network error.
+const resolvedBaseURL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_API_EXTERNAL_URL ||
+  "http://localhost:5000/api";
+
+if (process.env.NODE_ENV !== "production" && !process.env.NEXT_PUBLIC_API_URL) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[axios] NEXT_PUBLIC_API_URL is not set — falling back to ${resolvedBaseURL}. ` +
+      `Set it in .env.local to avoid pointing at the wrong backend.`
+  );
+}
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api",
+  baseURL: resolvedBaseURL,
   withCredentials: true,
 });
 

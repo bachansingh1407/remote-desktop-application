@@ -72,6 +72,31 @@ export const useWindowStore = create((set, get) => ({
       ),
     })),
 
+  // Used by the taskbar's "show desktop" strip — minimizes every open
+  // window in one shot. Returns the ids that were actually visible before
+  // the call, so the caller can restore exactly those (and only those) on
+  // a second press, matching the classic show-desktop "peek" toggle.
+  minimizeAllWindows: () => {
+    const visibleIds = get()
+      .windows.filter((w) => !w.minimized)
+      .map((w) => w.id);
+    set((state) => ({
+      windows: state.windows.map((w) => ({ ...w, minimized: true })),
+    }));
+    return visibleIds;
+  },
+
+  restoreWindows: (ids) => {
+    if (!ids?.length) return;
+    zCounter += 1;
+    const targetZ = zCounter;
+    set((state) => ({
+      windows: state.windows.map((w) =>
+        ids.includes(w.id) ? { ...w, minimized: false, zIndex: targetZ } : w
+      ),
+    }));
+  },
+
   restoreWindow: (id) => {
     zCounter += 1;
     set((state) => ({

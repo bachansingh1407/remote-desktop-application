@@ -54,11 +54,11 @@ export default function Providers({ children }) {
     );
   }
 
-  const isLoginRoute = pathname === "/login";
+  const isAuthRoute = pathname === "/login" || pathname === "/register";
 
   return (
     <ProtectedRoute>
-      {isLoginRoute ? (
+      {isAuthRoute ? (
         children
       ) : (
         <ContextMenuProvider>

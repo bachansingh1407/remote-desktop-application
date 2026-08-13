@@ -59,6 +59,32 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  register: async ({ name, email, password }) => {
+    try {
+      const { data } = await api.post("/auth/register", { name, email, password });
+      const { user, accessToken } = data.data;
+
+      set({
+        user,
+        accessToken,
+        isAuthenticated: true,
+        failedAttempts: 0,
+        lockedUntil: null,
+      });
+
+      return { user, accessToken };
+    } catch (err) {
+      // Zod validation errors arrive as data.errors: [{ field, message }]
+      // (see error.middleware.js) — surface the first one if present, since
+      // it's usually the most actionable (e.g. "Password must contain at
+      // least one letter and one number" beats a generic "Validation failed").
+      const fieldErrors = err.response?.data?.errors;
+      const message =
+        fieldErrors?.[0]?.message || err.response?.data?.message || "Could not create account";
+      throw new Error(message);
+    }
+  },
+
   logout: async () => {
     try {
       await api.post("/auth/logout");

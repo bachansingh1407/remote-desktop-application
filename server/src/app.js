@@ -26,7 +26,16 @@ app.use(
 
 app.use(
   cors({
-    origin: env.corsOrigin,
+    // Reflects the request's Origin back only if it's in the allow-list,
+    // instead of a single hardcoded string — lets localhost (dev) and a
+    // deployed frontend both work against this same backend/env.
+    origin: (origin, callback) => {
+      // No Origin header at all (curl, server-to-server, same-origin) — allow.
+      if (!origin) return callback(null, true);
+      if (env.corsOrigins.includes(origin)) return callback(null, true);
+      logger.warn(`CORS blocked request from origin: ${origin}`);
+      return callback(null, false);
+    },
     credentials: true, // required so the refresh-token cookie is sent/received
   })
 );

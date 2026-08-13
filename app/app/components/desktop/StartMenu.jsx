@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Search, Power, User, LogOut, Grid3x3, Pin } from "lucide-react";
+import { Search, Power, LogOut, Grid3x3, Pin } from "lucide-react";
 import { useWindowStore, useAuthStore } from "@/app/stores";
 import { TASKBAR_HEIGHT } from "@/app/lib/constants";
 import { APP_REGISTRY } from "@/app/lib/appRegistry";
+import { getGreeting } from "@/app/lib/utils/greeting";
 
 export default function StartMenu({ open, onClose }) {
     const [query, setQuery] = useState("");
@@ -64,6 +65,9 @@ export default function StartMenu({ open, onClose }) {
     const isSearching = query.trim().length > 0;
     const visibleApps = isSearching ? filteredApps : tab === "pinned" ? pinnedApps : APP_REGISTRY;
 
+    const firstName = user?.name?.trim()?.split(" ")[0];
+    const initial = user?.name?.trim()?.charAt(0)?.toUpperCase() ?? "C";
+
     const handleLaunch = (app) => {
         if (app.comingSoon || !app.component) return;
 
@@ -84,14 +88,37 @@ export default function StartMenu({ open, onClose }) {
     return (
         <div
             ref={menuRef}
-            style={{ bottom: TASKBAR_HEIGHT + 8 }}
-            className="fixed left-1/2 z-[10001] w-[460px] -translate-x-1/2 overflow-hidden rounded-2xl
+            style={{ bottom: TASKBAR_HEIGHT + 10 }}
+            className="fixed left-3 z-[10001] w-[420px] overflow-hidden rounded-2xl
                  border border-border bg-background-elevated
                  backdrop-blur-2xl backdrop-saturate-150
-                 shadow-[0_20px_56px_rgba(0,0,0,0.4)] animate-scale-in"
+                 shadow-[0_24px_64px_rgba(0,0,0,0.45)] animate-scale-in"
         >
+            {/* header — greeting + avatar, sets the tone the way a real start
+                menu does before you even start typing */}
+            <div className="flex items-center gap-3 px-4 pb-3 pt-4">
+                <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[15px] font-medium text-white ring-1 ring-black/5"
+                    style={{
+                        background:
+                            "linear-gradient(155deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 55%, black))",
+                        boxShadow: "0 6px 18px -8px color-mix(in srgb, var(--color-accent) 70%, transparent)",
+                    }}
+                >
+                    {initial}
+                </div>
+                <div className="min-w-0">
+                    <p className="truncate text-[13.5px] font-medium text-foreground">
+                        {getGreeting(firstName)}
+                    </p>
+                    <p className="truncate text-[11px] text-foreground-secondary">
+                        {user?.email ?? "Signed in"}
+                    </p>
+                </div>
+            </div>
+
             {/* search */}
-            <div className="p-4 pb-3">
+            <div className="px-4 pb-3">
                 <div className="relative">
                     <Search
                         size={15}
@@ -101,10 +128,10 @@ export default function StartMenu({ open, onClose }) {
                         ref={inputRef}
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Type to search apps..."
+                        placeholder="Search apps..."
                         className="w-full rounded-xl border border-border bg-black/[0.03] dark:bg-white/[0.04]
                        py-2.5 pl-9 pr-3 text-[13px] text-foreground placeholder-foreground-secondary
-                       outline-none transition-colors focus:border-accent/50"
+                       outline-none transition-colors focus:border-accent/50 focus:bg-black/[0.05] dark:focus:bg-white/[0.06]"
                     />
                 </div>
             </div>
@@ -119,20 +146,20 @@ export default function StartMenu({ open, onClose }) {
             )}
 
             {/* app grid */}
-            <div className="max-h-[320px] overflow-y-auto px-4 pb-3">
+            <div className="max-h-[300px] overflow-y-auto px-3 pb-2">
                 {visibleApps.length === 0 ? (
                     <p className="py-10 text-center text-[12px] text-foreground-secondary">
                         No apps found
                     </p>
                 ) : (
-                    <div className="grid grid-cols-4 gap-1">
+                    <div className="grid grid-cols-4 gap-0.5">
                         {visibleApps.map((app) => (
                             <button
                                 key={app.id}
                                 onClick={() => handleLaunch(app)}
                                 disabled={app.comingSoon}
                                 title={app.comingSoon ? `${app.title} — coming soon` : app.title}
-                                className={`flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 text-center
+                                className={`group flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 text-center
                             transition-colors ${
                                     app.comingSoon
                                         ? "cursor-not-allowed opacity-40"
@@ -140,8 +167,11 @@ export default function StartMenu({ open, onClose }) {
                                 }`}
                             >
                                 <span
-                                    className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm"
-                                    style={{ backgroundColor: app.color ?? "#6B7280" }}
+                                    className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm
+                                     transition-transform duration-150 group-hover:scale-[1.06] group-active:scale-95"
+                                    style={{
+                                        background: `linear-gradient(155deg, ${app.color ?? "#6B7280"}, color-mix(in srgb, ${app.color ?? "#6B7280"} 65%, black))`,
+                                    }}
                                 >
                                     <app.icon size={18} className="text-white" strokeWidth={1.8} />
                                 </span>
@@ -159,10 +189,16 @@ export default function StartMenu({ open, onClose }) {
             {/* footer — account + power */}
             <div className="flex items-center justify-between px-4 py-2.5">
                 <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-black/[0.06] dark:bg-white/[0.08]">
-                        <User size={13} className="text-foreground-secondary" />
-                    </div>
-                    <span className="text-[12px] text-foreground">
+                    <span
+                        className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-medium text-white"
+                        style={{
+                            background:
+                                "linear-gradient(155deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 55%, black))",
+                        }}
+                    >
+                        {initial}
+                    </span>
+                    <span className="text-[11.5px] text-foreground-secondary">
                         {user?.name ?? "Guest"}
                     </span>
                 </div>
@@ -175,14 +211,16 @@ export default function StartMenu({ open, onClose }) {
                         }}
                         title="Sign out"
                         className="flex h-8 w-8 items-center justify-center rounded-lg
-                       text-foreground-secondary hover:bg-black/[0.06] dark:hover:bg-white/[0.08]"
+                       text-foreground-secondary transition-colors
+                       hover:bg-black/[0.06] hover:text-foreground dark:hover:bg-white/[0.08]"
                     >
                         <LogOut size={15} strokeWidth={1.5} />
                     </button>
                     <button
                         title="Power"
                         className="flex h-8 w-8 items-center justify-center rounded-lg
-                       text-foreground-secondary hover:bg-black/[0.06] dark:hover:bg-white/[0.08]"
+                       text-foreground-secondary transition-colors
+                       hover:bg-black/[0.06] hover:text-foreground dark:hover:bg-white/[0.08]"
                     >
                         <Power size={15} strokeWidth={1.5} />
                     </button>

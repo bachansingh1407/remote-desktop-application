@@ -5,5 +5,5 @@ export const DEFAULT_WINDOW = {
   minHeight: 400,
 };
 
-export const TASKBAR_HEIGHT = 48;
+export const TASKBAR_HEIGHT = 52;
 export const BASE_Z_INDEX = 10;

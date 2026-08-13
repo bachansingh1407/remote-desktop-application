@@ -24,6 +24,13 @@ export default function Window({
   const app = getApp(id);
   const AppIcon = app?.icon;
   const appColor = app?.color ?? "var(--color-accent)";
+  // Flat tinted chip — matches the file/folder icon language used throughout
+  // the app now, instead of the old glossy gradient badge.
+  const appIconStyle = {
+    background: `color-mix(in srgb, ${appColor} 16%, var(--background-secondary))`,
+    color: appColor,
+    boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${appColor} 24%, transparent)`,
+  };
 
   const handleDragMove = useCallback((e) => {
     if (!dragState.current) return;
@@ -90,14 +97,12 @@ export default function Window({
     <div
       onPointerDown={exiting ? undefined : onFocus}
       style={{
-        fontFamily:
-          '"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif',
         touchAction: "none",
         ...(maximized
           ? { top: 0, left: 0, right: 0, bottom: TASKBAR_HEIGHT, zIndex }
           : { top: y, left: x, width, height, minWidth, minHeight, zIndex }),
       }}
-      className={`${exitAnim} fixed flex flex-col overflow-hidden rounded-xl
+      className={`${exitAnim} fixed flex flex-col overflow-hidden rounded-md
                  border bg-background-elevated backdrop-blur-2xl backdrop-saturate-150
                  transition-shadow duration-200 ease-out
                  ${exiting ? "pointer-events-none" : ""}
@@ -113,17 +118,11 @@ export default function Window({
         className="relative flex h-10 shrink-0 cursor-grab items-center justify-between
                    pl-2.5 pr-1.5 active:cursor-grabbing select-none"
       >
-        {/* faint top highlight — reads as glass catching light */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/[0.08]" />
-
         <div className={`flex min-w-0 items-center gap-2 transition-opacity duration-200 ${isFocused ? "opacity-100" : "opacity-50"}`}>
           {AppIcon && (
             <span
-              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] text-white"
-              style={{
-                background: `linear-gradient(155deg, ${appColor}, color-mix(in srgb, ${appColor} 78%, black))`,
-                boxShadow: `0 2px 6px -2px ${appColor}90`,
-              }}
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px]"
+              style={appIconStyle}
             >
               <AppIcon size={11} strokeWidth={2.1} />
             </span>
@@ -138,7 +137,7 @@ export default function Window({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onMinimize}
             title="Minimize"
-            className="flex h-6 w-6 items-center justify-center rounded-md
+            className="flex h-8 w-8 items-center justify-center rounded-sm
                        text-foreground-secondary transition-all duration-100
                        hover:bg-foreground/[0.08] hover:text-foreground active:scale-90"
           >
@@ -148,7 +147,7 @@ export default function Window({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onToggleMaximize}
             title={maximized ? "Restore" : "Maximize"}
-            className="flex h-6 w-6 items-center justify-center rounded-md
+            className="flex h-8 w-8 items-center justify-center rounded-sm
                        text-foreground-secondary transition-all duration-100
                        hover:bg-foreground/[0.08] hover:text-foreground active:scale-90"
           >
@@ -158,7 +157,7 @@ export default function Window({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onClose}
             title="Close"
-            className="flex h-6 w-6 items-center justify-center rounded-md
+            className="flex h-8 w-8 items-center justify-center rounded-sm
                        text-foreground-secondary transition-all duration-100
                        hover:bg-red-500 hover:text-white active:scale-90 active:bg-red-600"
           >
@@ -169,7 +168,7 @@ export default function Window({
 
       <div className={`h-px shrink-0 transition-colors duration-200 ${isFocused ? "bg-border" : "bg-border/50"}`} />
 
-      <div className="flex-1 overflow-auto bg-background-secondary/40 dark:bg-black/20 text-foreground">
+      <div className="flex-1 overflow-auto bg-background-secondary/50 text-foreground">
         {children}
       </div>
 
