@@ -143,9 +143,9 @@ export default function Taskbar() {
                     >
                         <Search size={14} strokeWidth={1.9} className="shrink-0" />
                         <span className="hidden truncate text-[12px] md:inline">Search Campus</span>
-                        <kbd className="ml-auto hidden shrink-0 rounded-md border border-black/[0.08] bg-white/60 px-1.5 py-0.5 text-[9.5px] font-medium text-foreground-secondary/80 lg:inline dark:border-white/10 dark:bg-black/20">
+                        {/* <kbd className="ml-auto hidden shrink-0 rounded-md border border-black/[0.08] bg-white/60 px-1.5 py-0.5 text-[9.5px] font-medium text-foreground-secondary/80 lg:inline dark:border-white/10 dark:bg-black/20">
                             ⌘K
-                        </kbd>
+                        </kbd> */}
                     </button>
 
                     {/* running apps — centered dock, each a colored tile that

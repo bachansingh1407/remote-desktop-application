@@ -1,6 +1,6 @@
-# Ostrin Backend
+# Campus Backend
 
-Node.js + Express + PostgreSQL (Prisma) backend for Ostrin — full authentication
+Node.js + Express + PostgreSQL (Prisma) backend for Campus — full authentication
 (access/refresh tokens, RBAC, lockout) and a file/folder system with strict
 soft-delete semantics.
 

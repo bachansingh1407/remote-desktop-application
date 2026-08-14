@@ -439,7 +439,7 @@ function FilesSection() {
                     <StatBox label="Folders" value={folderCount} />
                 </div>
                 <p className="mt-2 text-[11px] text-foreground-secondary">
-                    ~{estimatedKB} KB used (synced to your Ostrin backend)
+                    ~{estimatedKB} KB used (synced to your Campus backend)
                 </p>
             </Field>
         </Section>
@@ -560,7 +560,7 @@ function AboutSection() {
             </Field>
 
             <div className="mt-4 border-t border-border pt-4 text-[11px] text-foreground-secondary">
-                <p className="font-medium text-foreground">Ostrin <span className="text-accent">v2.0</span></p>
+                <p className="font-medium text-foreground">Campus <span className="text-accent">v1.0</span></p>
                 <p className="mt-0.5">Data is stored in your browser and synced to your account, and persists across refreshes and devices.</p>
             </div>
         </Section>

@@ -69,7 +69,7 @@ const env = {
   uploadDir: process.env.UPLOAD_DIR || "uploads",
   maxFileSizeMb: Number(process.env.MAX_FILE_SIZE_MB || 15),
 
-  seedAdminEmail: process.env.SEED_ADMIN_EMAIL || "admin@ostrin.dev",
+  seedAdminEmail: process.env.SEED_ADMIN_EMAIL || "admin@campus.dev",
   seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || "ChangeMe123!",
   seedAdminName: process.env.SEED_ADMIN_NAME || "Admin",
   imagekit: {
