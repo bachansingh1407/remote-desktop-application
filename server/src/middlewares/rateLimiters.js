@@ -50,4 +50,18 @@ const refreshLimiter = rateLimit({
   skipSuccessfulRequests: true, // only count failed/invalid refresh attempts against the quota
 });
 
-module.exports = { globalLimiter, authLimiter, refreshLimiter };
+// Community wall is public-ish (any authenticated user, free-text name).
+// Without a per-account cap someone could script-post hundreds of cards
+// and flood the board — this is deliberately generous for real usage
+// (a person posting a handful of times a session) but hard enough to stop
+// a spam loop. Independent of globalLimiter, which is IP-wide across the
+// whole API.
+const communityLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 12,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+});
+
+module.exports = { globalLimiter, authLimiter, refreshLimiter, communityLimiter };

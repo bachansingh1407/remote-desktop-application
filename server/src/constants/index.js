@@ -29,6 +29,9 @@ const AUDIT_ACTIONS = Object.freeze({
   NODE_RESTORE: "node.restore",
   NODE_DELETE_FOREVER: "node.delete_forever",
   NODE_EMPTY_TRASH: "node.empty_trash",
+
+  COMMUNITY_POST_CREATE: "community.post_create",
+  COMMUNITY_POST_DELETE: "community.post_delete",
 });
 
 module.exports = { ROLES, NODE_TYPES, AUDIT_ACTIONS };

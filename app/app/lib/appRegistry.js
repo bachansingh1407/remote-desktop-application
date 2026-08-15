@@ -4,7 +4,6 @@ import {
     FolderOpen,
     NotebookPen,
     Calendar,
-    Sparkles,
     Terminal,
     Trash2,
     ListChecks,
@@ -12,11 +11,12 @@ import {
     Plug,
     Earth,
     Compass,
+    Megaphone,
+    Bot,
 } from "lucide-react";
 import SettingsApp from "@/app/apps/settings/SettingsApp";
 import ToolConsoleApp from "../apps/tool-console/ToolConsoleApp";
 import CalendarApp from "../apps/calendar/CalendarApp";
-import AIAssistantApp from "../apps/ai-assistant/AIAssistantApp";
 import BrowserApp from "../apps/browser/BrowserApp";
 import FilesApp from "../apps/files/FilesApp";
 import WriteApp from "../apps/write/WriteApp";
@@ -25,6 +25,8 @@ import TasksApp from "../apps/tasks/TasksApp";
 import SnippetsApp from "../apps/snippets/SnippetsApp";
 import IntegrationsApp from "../apps/integrations/IntegrationsApp";
 import WebAppFrame from "../apps/web-app-frame/WebAppFrame";
+import CommunityApp from "../apps/community/CommunityApp";
+import SteveApp from "../apps/steve/SteveApp";
 import { useWebAppsStore } from "@/app/stores/useWebAppsStore";
 import { getWebAppIcon } from "./webAppIcons";
 
@@ -100,18 +102,32 @@ export const APP_REGISTRY = [
         minHeight: 400,
     },
     {
-        id: "core-assistent", // or a dedicated "ai-assistant" id — see note below
-        title: "akaza",
-        icon: Sparkles,
-        color: "#0FA35C",
-        component: AIAssistantApp,
+        id: "community",
+        title: "Community",
+        icon: Megaphone,
+        color: "#EA580C",
+        component: CommunityApp,
         pinned: true,
         showOnDesktop: true,
         comingSoon: false,
-        width: 1000,
-        height: 560,
-        minWidth: 600,
-        minHeight: 440,
+        width: 920,
+        height: 620,
+        minWidth: 520,
+        minHeight: 420,
+    },
+    {
+        id: "steve",
+        title: "Steve",
+        icon: Bot,
+        color: "#0EA5E9",
+        component: SteveApp,
+        pinned: true,
+        showOnDesktop: true,
+        comingSoon: false,
+        width: 1020,
+        height: 600,
+        minWidth: 680,
+        minHeight: 460,
     },
     {
         id: "tool-console",

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { DEFAULT_WINDOW } from "../lib/constants";
+import { useSteveStore } from "./useSteveStore";
 
 let zCounter = 10;
 
@@ -49,6 +50,12 @@ export const useWindowStore = create((set, get) => ({
         },
       ],
     }));
+
+    // Passive achievement tracking for Steve — only fires the first time a
+    // given app id is genuinely opened (not on refocus, see branch above).
+    // Steve's store has zero knowledge of window internals; this is the
+    // only place that calls into it.
+    useSteveStore.getState().trackAppOpened(id);
   },
 
   closeWindow: (id) =>

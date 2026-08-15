@@ -22,6 +22,7 @@ model User {
   auditLogs      AuditLog[]
   nodes          Node[]
   refreshTokens  RefreshToken[]
+  communityPosts CommunityPost[]
 
   @@index([role])
   @@map("users")
@@ -88,6 +89,19 @@ model AuditLog {
   @@index([action])
   @@map("audit_logs")
 }
+
+model CommunityPost {
+  id        String   @id @default(uuid())
+  name      String
+  message   String
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("community_posts")
+}
+
 
 enum Role {
   USER

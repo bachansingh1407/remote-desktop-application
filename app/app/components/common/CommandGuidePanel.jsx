@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 
 /**
  * A right-side slide-over listing what an app's command surface can do,
- * grouped into sections. Used by both the AI Assistant ("akaza") and Tool
+ * grouped into sections. Used by both Steve's Operations tab and Tool
  * Console — same shape, different content, so people always know what to
  * type instead of guessing.
  *

@@ -11,6 +11,7 @@ import WallpaperLayer from "./components/desktop/WallpaperLayer";
 import { ContextMenuProvider } from "./components/common/ContextMenu";
 import Toaster from "./components/common/Toaster";
 import CommandPalette from "./components/common/CommandPalette";
+import SteveWidget from "./components/desktop/SteveWidget";
 
 export default function Providers({ children }) {
   const pathname = usePathname();
@@ -68,6 +69,7 @@ export default function Providers({ children }) {
           <WindowManager />
           <CommandPalette />
           <Toaster />
+          <SteveWidget />
           <Taskbar />
         </ContextMenuProvider>
       )}
