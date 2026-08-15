@@ -13,6 +13,7 @@ import {
     Compass,
     Megaphone,
     Bot,
+    Squirrel,
 } from "lucide-react";
 import SettingsApp from "@/app/apps/settings/SettingsApp";
 import ToolConsoleApp from "../apps/tool-console/ToolConsoleApp";
@@ -118,7 +119,7 @@ export const APP_REGISTRY = [
     {
         id: "steve",
         title: "Steve",
-        icon: Bot,
+        icon: Squirrel,
         color: "#0EA5E9",
         component: SteveApp,
         pinned: true,

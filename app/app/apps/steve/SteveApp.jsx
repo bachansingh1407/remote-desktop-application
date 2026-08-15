@@ -31,6 +31,7 @@ import {
   HelpCircle,
   Folder,
   FileText,
+  Squirrel,
 } from "lucide-react";
 import { useSteveStore, ACHIEVEMENTS } from "@/app/stores/useSteveStore";
 import { useSteveOpsStore } from "@/app/stores/useSteveOpsStore";
@@ -149,7 +150,7 @@ export function SteveAvatar({ talking, size = "md" }) {
           talking ? "animate-[steve-bob_1.4s_ease-in-out_infinite]" : ""
         }`}
       >
-        <Bot size={dims.icon} />
+        <Squirrel size={dims.icon} />
       </div>
       {talking && (
         <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">

@@ -98,7 +98,7 @@ export default function StartMenu({ open, onClose }) {
         >
             {/* header — greeting + avatar, sets the tone the way a real start
                 menu does before you even start typing */}
-            <div className="flex items-center gap-3 px-4 pb-3 pt-4">
+            {/* <div className="flex items-center gap-3 px-4 pb-3 pt-4">
                 <div
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[15px] font-medium text-white ring-1 ring-black/5"
                     style={{
@@ -117,10 +117,10 @@ export default function StartMenu({ open, onClose }) {
                         {user?.email ?? "Signed in"}
                     </p>
                 </div>
-            </div>
+            </div> */}
 
             {/* search */}
-            <div className="px-4 pb-3">
+            <div className="px-4 pb-3 mt-6">
                 <div className="relative">
                     <Search
                         size={15}
@@ -162,11 +162,10 @@ export default function StartMenu({ open, onClose }) {
                                 disabled={app.comingSoon}
                                 title={app.comingSoon ? `${app.title} — coming soon` : app.title}
                                 className={`group flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 text-center
-                            transition-colors ${
-                                    app.comingSoon
+                            transition-colors ${app.comingSoon
                                         ? "cursor-not-allowed opacity-40"
                                         : "hover:bg-black/[0.05] dark:hover:bg-white/[0.06]"
-                                }`}
+                                    }`}
                             >
                                 <span
                                     className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm
@@ -200,9 +199,14 @@ export default function StartMenu({ open, onClose }) {
                     >
                         {initial}
                     </span>
-                    <span className="text-[11.5px] text-foreground-secondary">
-                        {user?.name ?? "Guest"}
-                    </span>
+                    <div className="flex flex-col">
+                        <span className="text-[11.5px] text-foreground">
+                            {user?.name ?? "Guest"}
+                        </span>
+                        <p className="truncate text-[11px] text-foreground">
+                            {user?.email ?? "Signed in"}
+                        </p>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-1">
