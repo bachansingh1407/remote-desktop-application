@@ -5,6 +5,7 @@ A full-stack web application built with a modern JavaScript stack, combining a f
 The project is designed around a personal workspace/file-system experience with authentication, folders and files, uploads, search, trash/restore, access control, and a clean service-based backend architecture.
 
 > **Status:** Active development
+> **Live URL:** https://campus26.netlify.app/
 
 ---
 
