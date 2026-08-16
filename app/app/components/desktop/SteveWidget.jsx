@@ -5,71 +5,81 @@ import {
   FolderOpen,
   Megaphone,
   Code2,
-  Terminal,
+  Terminal as TerminalIcon,
   Trash2,
-  MessageCircle,
+  Maximize2,
   X,
-  ChevronDown,
+  Trophy,
+  LayoutGrid,
 } from "lucide-react";
-import { useWindowStore, useAuthStore } from "@/app/stores";
-import { useSteveStore } from "@/app/stores/useSteveStore";
+import { useWindowStore, useAuthStore, useFileSystemStore, useSystemActionsStore } from "@/app/stores";
+import { useSteveStore, ACHIEVEMENTS } from "@/app/stores/useSteveStore";
+import { useSteveConversation } from "@/app/lib/useSteveConversation";
+import { computeNotificationCount, LAST_SEEN_KEY as INSIGHTS_LAST_SEEN_KEY } from "@/app/lib/steveInsights";
 import { TASKBAR_HEIGHT } from "@/app/lib/constants";
 import { getApp } from "@/app/lib/appRegistry";
-import { SteveAvatar } from "@/app/apps/steve/SteveApp";
+import { getFileWindowContent, getFileWindowSize } from "@/app/lib/fileOpeners";
+import SteveAvatar from "@/app/components/steve/SteveAvatar";
+import SteveChatThread from "@/app/components/steve/SteveChatThread";
 
-// Quick-launch shortcuts in Steve's dock. Each maps to a real app id in the
-// registry — clicking one opens that app's actual window, same as the
-// taskbar would. Kept short and purposeful rather than mirroring every app.
 const DOCK_ITEMS = [
   { appId: "files", label: "Files", icon: FolderOpen },
   { appId: "community", label: "Community", icon: Megaphone },
   { appId: "snippets", label: "Snippets", icon: Code2 },
-  { appId: "tool-console", label: "Console", icon: Terminal },
+  { appId: "tool-console", label: "Console", icon: TerminalIcon },
   { appId: "trash", label: "Trash", icon: Trash2 },
 ];
 
-const LAST_SEEN_KEY = "steve:lastSeenAt";
+const SUGGESTED_PROMPTS = ["What's in my workspace?", "Open Files"];
 
-// Picks a contextual opening line based on how long it's been since the
-// person last had Campus open, computed once per mount from a plain
-// localStorage timestamp — deliberately not tied to any backend state.
 function buildGreeting(firstName, hasMetSteve) {
   if (typeof window === "undefined") return `Hey ${firstName}.`;
-
-  const lastSeenRaw = localStorage.getItem(LAST_SEEN_KEY);
+  const lastSeenRaw = localStorage.getItem(INSIGHTS_LAST_SEEN_KEY);
   const now = Date.now();
-  localStorage.setItem(LAST_SEEN_KEY, String(now));
+  localStorage.setItem(INSIGHTS_LAST_SEEN_KEY, String(now));
 
   if (!lastSeenRaw) {
-    return hasMetSteve ? `Hey ${firstName}, good to see you.` : `Hey ${firstName} — I'm Steve. Open me up, I'll show you around.`;
+    return hasMetSteve ? `Hey ${firstName}, good to see you.` : `Hey ${firstName} — I'm Steve. Click me and let's talk.`;
   }
-
-  const diffMs = now - Number(lastSeenRaw);
-  const hours = diffMs / (1000 * 60 * 60);
-
+  const hours = (now - Number(lastSeenRaw)) / (1000 * 60 * 60);
   if (hours < 0.05) return `Back already, ${firstName}?`;
   if (hours < 6) return `Welcome back, ${firstName}.`;
   if (hours < 24) return `Hey ${firstName} — it's been a few hours.`;
-  if (hours < 24 * 3) return `Good to see you again, ${firstName}. It's been a day or so.`;
-  if (hours < 24 * 14) return `It's been a while since you were last here, ${firstName}.`;
+  if (hours < 24 * 3) return `Good to see you again, ${firstName}.`;
+  if (hours < 24 * 14) return `It's been a while, ${firstName}.`;
   return `Whoa — it's been a long time since you used this computer, ${firstName}.`;
 }
 
 export default function SteveWidget() {
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const hasMetSteve = useSteveStore((s) => s.hasMetSteve);
+  const unlockedIds = useSteveStore((s) => s.unlockedIds);
   const recentlyUnlocked = useSteveStore((s) => s.recentlyUnlocked);
+  const hasMetSteve = useSteveStore((s) => s.hasMetSteve);
   const openWindow = useWindowStore((s) => s.openWindow);
+  const nodes = useFileSystemStore((s) => s.items);
+  const runAction = useSystemActionsStore((s) => s.runAction);
 
   const [dismissed, setDismissed] = useState(false);
-  const [dockOpen, setDockOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [bubbleText, setBubbleText] = useState("");
   const [showBubble, setShowBubble] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);
 
   const firstName = useMemo(() => (user?.name || "there").split(" ")[0], [user?.name]);
+  const { messages, thinking, send } = useSteveConversation();
 
-  // Opening line, once, shortly after the desktop mounts.
+  // Recomputed on an interval rather than tied to every store change —
+  // insights read across multiple stores (files, community), so a light
+  // periodic check is simpler and cheap enough for a badge count.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const compute = () => setNotifCount(computeNotificationCount());
+    compute();
+    const interval = setInterval(compute, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
   useEffect(() => {
     if (!isAuthenticated) return;
     const t = setTimeout(() => {
@@ -82,13 +92,9 @@ export default function SteveWidget() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
-  // Whenever an achievement unlocks anywhere in the app, Steve pipes up
-  // about it — this is what makes the widget feel alive rather than just
-  // a static launcher, without needing to be inside whichever app
-  // triggered the unlock.
   useEffect(() => {
-    if (recentlyUnlocked.length === 0) return;
-    setBubbleText("Nice — you just unlocked something. Check my Achievements tab.");
+    if (recentlyUnlocked.length === 0 || chatOpen) return;
+    setBubbleText("Nice — you just unlocked something new.");
     setShowBubble(true);
     const hide = setTimeout(() => setShowBubble(false), 5000);
     return () => clearTimeout(hide);
@@ -96,19 +102,34 @@ export default function SteveWidget() {
 
   if (!isAuthenticated || dismissed) return null;
 
-  const openSteve = (tab) => {
+  const openFileRef = (ref) => {
+    if (ref.type === "folder") {
+      runAction("openApp", { appId: "files" });
+      return;
+    }
+    const node = nodes?.[ref.id];
+    if (!node) return;
+    openWindow({
+      id: `file-${node.id}`,
+      title: node.name,
+      content: getFileWindowContent(node),
+      ...getFileWindowSize(node),
+    });
+  };
+
+  const openFullSteve = (screen = "chat") => {
     const app = getApp("steve");
     if (!app) return;
     openWindow({
       id: "steve",
       title: "Steve",
-      content: <app.component initialTab={tab} />,
+      content: <app.component initialTab={screen} />,
       width: app.width,
       height: app.height,
       minWidth: app.minWidth,
       minHeight: app.minHeight,
     });
-    setDockOpen(false);
+    setChatOpen(false);
   };
 
   const openDockApp = (appId) => {
@@ -123,16 +144,17 @@ export default function SteveWidget() {
       minWidth: app.minWidth,
       minHeight: app.minHeight,
     });
-    setDockOpen(false);
+  };
+
+  const toggleChat = () => {
+    setShowBubble(false);
+    setChatOpen((v) => !v);
   };
 
   return (
-    <div
-      className="fixed right-4 z-40 flex flex-col items-end gap-2"
-      style={{ bottom: TASKBAR_HEIGHT + 16 }}
-    >
-      {/* speech bubble */}
-      {showBubble && bubbleText && (
+    <div className="fixed right-4 z-40 flex flex-col items-end gap-2" style={{ bottom: TASKBAR_HEIGHT + 16 }}>
+      {/* speech bubble — only while the chat popup itself is closed */}
+      {!chatOpen && showBubble && bubbleText && (
         <div
           onClick={() => setShowBubble(false)}
           className="mr-1 max-w-[220px] cursor-pointer animate-[bubble-in_0.25s_ease-out] rounded-2xl rounded-br-sm border border-border bg-background-elevated px-3 py-2 text-[11.5px] leading-snug text-foreground shadow-lg backdrop-blur-xl"
@@ -141,49 +163,95 @@ export default function SteveWidget() {
         </div>
       )}
 
-      {/* mini dock — expands upward above the avatar */}
-      {dockOpen && (
-        <div className="mr-1 flex animate-[dock-in_0.18s_ease-out] flex-col gap-1 rounded-2xl border border-border bg-background-elevated p-1.5 shadow-xl backdrop-blur-xl">
-          <button
-            onClick={() => openSteve("welcome")}
-            className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[11.5px] text-foreground-secondary transition-colors hover:bg-accent/10 hover:text-accent"
-          >
-            <MessageCircle size={14} />
-            Open Steve
-          </button>
-          <div className="my-0.5 h-px bg-border" />
-          {DOCK_ITEMS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.appId}
-                onClick={() => openDockApp(item.appId)}
-                className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[11.5px] text-foreground-secondary transition-colors hover:bg-black/[0.05] dark:hover:bg-white/[0.06]"
-              >
-                <Icon size={14} />
-                {item.label}
-              </button>
-            );
-          })}
+      {/* real-time chat popup */}
+      {chatOpen && (
+        <div className="mr-1 flex h-[480px] w-[340px] animate-[popup-in_0.2s_ease-out] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl">
+          <div className="flex shrink-0 items-center gap-2 border-b border-border bg-background-secondary/60 px-3.5 py-2.5">
+            <SteveAvatar talking={thinking} size="xs" showStatus />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[12px] font-semibold leading-tight">Steve</p>
+              {/* <p className="text-[10px] text-foreground-secondary">{thinking ? "typing…" : "head of operations"}</p> */}
+            </div>
+            <span className="flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[9.5px] font-semibold text-accent">
+              <Trophy size={9} />
+              {unlockedIds.length}/{ACHIEVEMENTS.length}
+            </span>
+            <button
+              onClick={() => openFullSteve("home")}
+              title="Open dashboard"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-foreground-secondary hover:bg-black/[0.06] dark:hover:bg-white/[0.08]"
+            >
+              <LayoutGrid size={12} />
+            </button>
+            <button
+              onClick={() => openFullSteve("chat")}
+              title="Open full app"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-foreground-secondary hover:bg-black/[0.06] dark:hover:bg-white/[0.08]"
+            >
+              <Maximize2 size={12} />
+            </button>
+            <button
+              onClick={() => setChatOpen(false)}
+              title="Close"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-foreground-secondary hover:bg-black/[0.06] dark:hover:bg-white/[0.08]"
+            >
+              <X size={12} />
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1">
+            <SteveChatThread
+              messages={messages}
+              thinking={thinking}
+              onSend={send}
+              onOpenFileRef={openFileRef}
+              compact
+              suggestions={SUGGESTED_PROMPTS}
+              placeholder="Message Steve..."
+            />
+          </div>
+
+          <div className="flex shrink-0 items-center justify-center gap-1 border-t border-border bg-background-secondary/40 px-2 py-1.5">
+            {DOCK_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.appId}
+                  onClick={() => openDockApp(item.appId)}
+                  title={item.label}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-foreground-secondary transition-colors hover:bg-black/[0.06] hover:text-accent dark:hover:bg-white/[0.08]"
+                >
+                  <Icon size={13} />
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* avatar bubble */}
       <div className="group relative">
         <button
-          onClick={() => setDockOpen((v) => !v)}
-          title="Steve"
+          onClick={toggleChat}
+          title="Chat with Steve"
           className="relative flex h-12 w-12 items-center justify-center rounded-full border border-border bg-background-elevated shadow-lg backdrop-blur-xl transition-transform hover:scale-105 active:scale-95"
         >
-          <SteveAvatar talking={showBubble} size="sm" />
+          <SteveAvatar talking={thinking} size="sm" showStatus={!chatOpen} />
         </button>
-        <span
-          className={`pointer-events-none absolute -top-1 -left-1 flex h-5 w-5 items-center justify-center rounded-full bg-background-elevated text-foreground-secondary shadow transition-transform ${
-            dockOpen ? "rotate-180" : ""
-          }`}
-        >
-          <ChevronDown size={11} />
-        </span>
+
+        {!chatOpen && notifCount > 0 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openFullSteve("home");
+            }}
+            title={`${notifCount} thing${notifCount === 1 ? "" : "s"} worth a look`}
+            className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-red-500 text-[9px] font-bold text-white shadow-sm"
+          >
+            {notifCount}
+          </button>
+        )}
+
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -207,14 +275,14 @@ export default function SteveWidget() {
             transform: translateY(0) scale(1);
           }
         }
-        @keyframes dock-in {
+        @keyframes popup-in {
           0% {
             opacity: 0;
-            transform: translateY(8px);
+            transform: translateY(12px) scale(0.97);
           }
           100% {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
           }
         }
       `}</style>

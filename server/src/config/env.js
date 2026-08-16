@@ -78,9 +78,20 @@ const env = {
     urlEndpoint: required("IMAGEKIT_URL_ENDPOINT"),
     folder: process.env.IMAGEKIT_FOLDER || "workspace",
   },
+
+  // Steve's brain. Deliberately NOT run through required() — a missing key
+  // shouldn't crash the whole server at boot (auth, files, everything else
+  // should keep working). Instead steve.service.js checks this and returns
+  // a clear, contained error only when someone actually hits /api/steve/chat
+  // without a key configured.
+  groq: {
+    apiKey: process.env.GROQ_API_KEY || "",
+    model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+  },
 };
 console.log("CORS allowed origins:", env.corsOrigins.join(", "));
 console.log("ImageKit:", env.imagekit.urlEndpoint);
+console.log("Groq model:", env.groq.model, env.groq.apiKey ? "(key configured)" : "(NO KEY SET — /api/steve/chat will fail)");
 if (env.isProd && env.accessTokenSecret.length < 32) {
   throw new Error(
     "[config] ACCESS_TOKEN_SECRET is too short for production. Use `openssl rand -hex 64`."

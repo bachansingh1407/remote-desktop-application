@@ -64,4 +64,18 @@ const communityLimiter = rateLimit({
   handler: rateLimitHandler,
 });
 
-module.exports = { globalLimiter, authLimiter, refreshLimiter, communityLimiter };
+// Steve's chat endpoint calls out to Groq, which is real, metered API
+// usage — this needs its own ceiling independent of globalLimiter so a
+// runaway frontend loop (or someone hammering the chat box) can't rack up
+// unbounded LLM cost. One user turn can trigger up to 2 Groq calls (the
+// tool-calling round trip), so this is sized generously enough for normal
+// back-and-forth conversation while still capping worst-case abuse.
+const steveChatLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+});
+
+module.exports = { globalLimiter, authLimiter, refreshLimiter, communityLimiter, steveChatLimiter };

@@ -136,7 +136,7 @@ export default function IntegrationsApp() {
                     autoFocus
                     value={form.name}
                     onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    placeholder="My Postman Clone"
+                    placeholder="enter app name"
                     className="rounded-md border border-border bg-background px-2.5 py-1.5 text-[12.5px] text-foreground outline-none transition-colors focus:border-accent/50 focus:ring-[3px] focus:ring-accent/10"
                   />
                 </label>
@@ -145,7 +145,7 @@ export default function IntegrationsApp() {
                   <input
                     value={form.url}
                     onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
-                    placeholder="https://my-app.vercel.app"
+                    placeholder="enter enternal url"
                     className="rounded-md border border-border bg-background px-2.5 py-1.5 text-[12.5px] text-foreground outline-none transition-colors focus:border-accent/50 focus:ring-[3px] focus:ring-accent/10"
                   />
                 </label>
