@@ -17,6 +17,7 @@ import {
   File,
   Bot,
   ArrowRight,
+  Squirrel,
 } from "lucide-react";
 import { useWindowStore, useFileSystemStore, useSystemActionsStore } from "@/app/stores";
 import { useCommunityStore } from "@/app/stores/useCommunityStore";
@@ -328,7 +329,7 @@ export default function SteveHome({ onAskSteve }) {
           <div className="rounded-2xl border border-border bg-background-secondary p-1.5">
             {activity.length === 0 ? (
               <div className="flex flex-col items-center gap-1.5 p-6 text-center text-foreground-secondary">
-                <Bot size={20} className="opacity-40" />
+                <Squirrel size={20} className="opacity-40" />
                 <p className="text-[11px]">Nothing's happened yet — go make something.</p>
               </div>
             ) : (
