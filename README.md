@@ -1,8 +1,11 @@
 # Remote Desktop Application
 
+Campus is a browser-based desktop OS — you log in and get a real Windows/macOS-style desktop running entirely inside a webpage, with draggable icons, resizable windows, a taskbar, a start menu, and an AI assistant with actual control over your workspace.
+
 A full-stack web application built with a modern JavaScript stack, combining a frontend client with a secure Node.js/Express backend and PostgreSQL database.
 
 The project is designed around a personal workspace/file-system experience with authentication, folders and files, uploads, search, trash/restore, access control, and a clean service-based backend architecture.
+
 
 > **Status:** Active development
 > **Live URL:** [https://campus26.netlify.app/](https://campus26.netlify.app/)
