@@ -26,6 +26,7 @@ router.get("/trash", nodeController.listTrash);
 router.delete("/trash/empty", nodeController.emptyTrash);
 router.get("/search", validate({ query: searchQuerySchema }), nodeController.search);
 router.get("/stats", nodeController.stats);
+router.get("/download", nodeController.downloadBulk);
 
 router.post("/folder", validate({ body: createFolderSchema }), nodeController.createFolder);
 router.post("/file", validate({ body: createFileSchema }), nodeController.createFile);

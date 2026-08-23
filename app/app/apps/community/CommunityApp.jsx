@@ -253,13 +253,13 @@ export default function CommunityApp() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search messages..."
-                className="w-full rounded-xl border border-border bg-background px-3.5 py-2 pl-8 text-[12px] outline-none transition-shadow focus:ring-2 focus:ring-accent/30 sm:w-44"
+                className="w-full rounded-md border border-border bg-background px-3.5 py-2 pl-8 text-[12px] outline-none transition-shadow focus:ring-2 focus:ring-accent/30 sm:w-44"
               />
             </div>
 
             <button
               onClick={() => setComposerOpen(true)}
-              className="ml-auto flex shrink-0 items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-[12.5px] font-semibold text-white transition-transform hover:brightness-110 active:scale-95"
+              className="ml-auto flex shrink-0 items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-[12.5px] font-semibold text-white transition-transform hover:brightness-110 active:scale-95"
             >
               <PenSquare size={13} />
               Share thoughts
@@ -269,7 +269,7 @@ export default function CommunityApp() {
               onClick={() => fetchPosts()}
               disabled={isLoading}
               title="Refresh"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border text-foreground-secondary transition-colors hover:bg-black/[0.05] disabled:opacity-50 dark:hover:bg-white/[0.06]"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border text-foreground-secondary transition-colors hover:bg-black/[0.05] disabled:opacity-50 dark:hover:bg-white/[0.06]"
             >
               <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
             </button>

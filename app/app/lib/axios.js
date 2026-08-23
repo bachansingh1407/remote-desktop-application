@@ -119,4 +119,46 @@ export async function fetchFileText(nodeId) {
   return response.data;
 }
 
+/**
+ * Triggers a real browser "Save As" download for a single node (file or
+ * folder — folders come back zipped from the backend) or a multi-select
+ * batch (via `/nodes/download?ids=`). Reads the real filename off
+ * Content-Disposition when the server sent one (see app.js's
+ * `exposedHeaders`), falling back to `fallbackName` if not.
+ */
+async function saveBlobResponse(response, fallbackName) {
+  const disposition = response.headers["content-disposition"];
+  let filename = fallbackName || "download";
+  if (disposition) {
+    const starMatch = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+    const plainMatch = /filename="([^"]+)"/i.exec(disposition);
+    if (starMatch) filename = decodeURIComponent(starMatch[1]);
+    else if (plainMatch) filename = plainMatch[1];
+  }
+
+  const url = window.URL.createObjectURL(response.data);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  // Give the download a tick to actually start before revoking the
+  // object URL, then release the memory.
+  setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+}
+
+export async function downloadNode(nodeId, fallbackName) {
+  const response = await api.get(`/nodes/${nodeId}/download`, { responseType: "blob" });
+  await saveBlobResponse(response, fallbackName);
+}
+
+export async function downloadNodes(nodeIds, fallbackName = "download.zip") {
+  const response = await api.get(`/nodes/download`, {
+    params: { ids: nodeIds.join(",") },
+    responseType: "blob",
+  });
+  await saveBlobResponse(response, fallbackName);
+}
+
 export default api;

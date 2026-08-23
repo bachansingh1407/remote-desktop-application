@@ -11,3 +11,4 @@ export { useWebAppsStore } from "./useWebAppsStore";
 export { useCommunityStore } from "./useCommunityStore";
 export { useSteveStore, ACHIEVEMENTS } from "./useSteveStore";
 export { useSteveOpsStore } from "./useSteveOpsStore";
+export { useStickyNotesStore, NOTE_COLORS } from "./useStickyNotesStore";

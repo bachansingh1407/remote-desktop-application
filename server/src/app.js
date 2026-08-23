@@ -37,6 +37,11 @@ app.use(
       return callback(null, false);
     },
     credentials: true, // required so the refresh-token cookie is sent/received
+    // Without this, the browser receives Content-Disposition on download
+    // responses but JS (axios/fetch) can't read it on a cross-origin
+    // request — the frontend would have no way to recover the real
+    // filename for a triggered download.
+    exposedHeaders: ["Content-Disposition"],
   })
 );
 

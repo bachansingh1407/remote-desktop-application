@@ -200,7 +200,7 @@ function ProfileDrawer({ onClose }) {
     { label: "Built by", value: "Bachan Singh" },
     { label: "Based in", value: "Chandigarh, India" },
     { label: "Stack", value: "Next.js · Zustand · Express · Prisma · PostgreSQL" },
-    { label: "Steve runs on", value: "Groq (Llama) — real reasoning" },
+    // { label: "Steve runs on", value: "Groq (Llama)s" },
     { label: "GitHub", value: "bachansingh1407" },
   ];
 

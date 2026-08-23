@@ -14,6 +14,9 @@ import {
     Megaphone,
     Bot,
     Squirrel,
+    Images,
+    StickyNote,
+    Calculator,
 } from "lucide-react";
 import SettingsApp from "@/app/apps/settings/SettingsApp";
 import ToolConsoleApp from "../apps/tool-console/ToolConsoleApp";
@@ -28,6 +31,9 @@ import IntegrationsApp from "../apps/integrations/IntegrationsApp";
 import WebAppFrame from "../apps/web-app-frame/WebAppFrame";
 import CommunityApp from "../apps/community/CommunityApp";
 import SteveApp from "../apps/steve/SteveApp";
+import GalleryApp from "../apps/gallery/GalleryApp";
+import StickyNotesApp from "../apps/sticky-notes/StickyNotesApp";
+import CalculatorApp from "../apps/calculator/CalculatorApp";
 import { useWebAppsStore } from "@/app/stores/useWebAppsStore";
 import { getWebAppIcon } from "./webAppIcons";
 
@@ -184,6 +190,48 @@ export const APP_REGISTRY = [
         height: 560,
         minWidth: 700,
         minHeight: 500,
+    },
+    {
+        id: "gallery",
+        title: "Gallery",
+        icon: Images,
+        color: "#DB2777",
+        component: GalleryApp,
+        pinned: true,
+        showOnDesktop: true,
+        comingSoon: false,
+        width: 860,
+        height: 560,
+        minWidth: 480,
+        minHeight: 380,
+    },
+    {
+        id: "sticky-notes",
+        title: "Sticky Notes",
+        icon: StickyNote,
+        color: "#CA8A04",
+        component: StickyNotesApp,
+        pinned: true,
+        showOnDesktop: true,
+        comingSoon: false,
+        width: 640,
+        height: 480,
+        minWidth: 400,
+        minHeight: 340,
+    },
+    {
+        id: "calculator",
+        title: "Calculator",
+        icon: Calculator,
+        color: "#334155",
+        component: CalculatorApp,
+        pinned: true,
+        showOnDesktop: true,
+        comingSoon: false,
+        width: 320,
+        height: 480,
+        minWidth: 300,
+        minHeight: 440,
     },
     // {
     //     id: "browser",

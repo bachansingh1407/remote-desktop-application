@@ -91,16 +91,22 @@ export default function StartMenu({ open, onClose }) {
         <div
             ref={menuRef}
             style={{ bottom: TASKBAR_HEIGHT + 10 }}
-            className="fixed left-3 z-[10001] w-[420px] overflow-hidden rounded-2xl
+            className="fixed left-3 z-[10001] w-[440px] overflow-hidden rounded-2xl
                  border border-border bg-background-elevated
                  backdrop-blur-2xl backdrop-saturate-150
                  shadow-[0_24px_64px_rgba(0,0,0,0.45)] animate-scale-in"
         >
             {/* header — greeting + avatar, sets the tone the way a real start
                 menu does before you even start typing */}
-            {/* <div className="flex items-center gap-3 px-4 pb-3 pt-4">
+            {/* <div
+                className="relative flex items-center gap-3 overflow-hidden px-4 pb-4 pt-4"
+                style={{
+                    background:
+                        "linear-gradient(160deg, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 65%)",
+                }}
+            >
                 <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[15px] font-medium text-white ring-1 ring-black/5"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[16px] font-medium text-white ring-1 ring-black/5"
                     style={{
                         background:
                             "linear-gradient(155deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 55%, black))",
@@ -110,7 +116,7 @@ export default function StartMenu({ open, onClose }) {
                     {initial}
                 </div>
                 <div className="min-w-0">
-                    <p className="truncate text-[13.5px] font-medium text-foreground">
+                    <p className="truncate text-[14.5px] font-semibold text-foreground">
                         {getGreeting(firstName)}
                     </p>
                     <p className="truncate text-[11px] text-foreground-secondary">
@@ -120,39 +126,60 @@ export default function StartMenu({ open, onClose }) {
             </div> */}
 
             {/* search */}
-            <div className="px-4 pb-3 mt-6">
+            <div className="px-4 pb-3 mt-5">
                 <div className="relative">
                     <Search
-                        size={15}
-                        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-foreground-secondary"
+                        size={16}
+                        className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground-secondary/70"
                     />
                     <input
                         ref={inputRef}
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Search apps..."
-                        className="w-full rounded-xl border border-border bg-black/[0.03] dark:bg-white/[0.04]
-                       py-2.5 pl-9 pr-3 text-[13px] text-foreground placeholder-foreground-secondary
-                       outline-none transition-colors focus:border-accent/50 focus:bg-black/[0.05] dark:focus:bg-white/[0.06]"
+                        className="w-full rounded-xl border border-border bg-black/[0.035] dark:bg-white/[0.05]
+                       py-3 pl-10 pr-9 text-[13.5px] text-foreground placeholder-foreground-secondary/70
+                       outline-none transition-all duration-150 focus:border-accent/55 focus:bg-black/[0.05]
+                       focus:ring-[3px] focus:ring-accent/10 dark:focus:bg-white/[0.07]"
                     />
+                    {query && (
+                        <button
+                            onClick={() => setQuery("")}
+                            className="absolute right-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center
+                                       rounded-full text-foreground-secondary/60 transition-colors hover:bg-black/[0.06]
+                                       hover:text-foreground dark:hover:bg-white/[0.08]"
+                        >
+                            <span className="text-[13px] leading-none">×</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* pinned / all apps toggle — hidden while searching, since search
                 already spans every app */}
             {!isSearching && (
-                <div className="flex shrink-0 gap-1 px-4 pb-2">
+                <div className="flex shrink-0 gap-1 px-4 pb-2.5">
                     <TabButton icon={Pin} label="Pinned" active={tab === "pinned"} onClick={() => setTab("pinned")} />
                     <TabButton icon={Grid3x3} label="All apps" active={tab === "all"} onClick={() => setTab("all")} />
                 </div>
+            )}
+            {isSearching && (
+                <p className="px-4 pb-2 text-[11px] text-foreground-secondary/70">
+                    {visibleApps.length} result{visibleApps.length === 1 ? "" : "s"} for &quot;{query}&quot;
+                </p>
             )}
 
             {/* app grid */}
             <div className="max-h-[300px] overflow-y-auto px-3 pb-2">
                 {visibleApps.length === 0 ? (
-                    <p className="py-10 text-center text-[12px] text-foreground-secondary">
-                        No apps found
-                    </p>
+                    <div className="flex flex-col items-center gap-2 py-10 text-center">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/[0.04] dark:bg-white/[0.06]">
+                            <Search size={16} className="text-foreground-secondary/50" />
+                        </span>
+                        <p className="text-[12px] text-foreground-secondary">
+                            No apps match &quot;{query}&quot;
+                        </p>
+                    </div>
                 ) : (
                     <div className="grid grid-cols-4 gap-0.5">
                         {visibleApps.map((app) => (
@@ -240,8 +267,10 @@ function TabButton({ icon: Icon, label, active, onClick }) {
     return (
         <button
             onClick={onClick}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-colors
-                ${active ? "bg-accent/15 text-accent" : "text-foreground-secondary hover:bg-black/[0.05] dark:hover:bg-white/[0.06]"}`}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11.5px] font-medium transition-all duration-150
+                ${active
+                    ? "bg-accent/15 text-accent ring-1 ring-accent/20"
+                    : "text-foreground-secondary hover:bg-black/[0.05] dark:hover:bg-white/[0.06]"}`}
         >
             <Icon size={12} />
             {label}

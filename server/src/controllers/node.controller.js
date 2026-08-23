@@ -1,4 +1,5 @@
 const fs = require("fs");
+const archiver = require("archiver");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiResponse = require("../utils/ApiResponse");
 const ApiError = require("../utils/ApiError");
@@ -6,6 +7,52 @@ const nodeService = require("../services/node.service");
 const { logAudit } = require("../services/audit.service");
 const { AUDIT_ACTIONS } = require("../constants");
 const axios = require("axios");
+
+// RFC 5987-style filename so names with unicode/spaces/quotes survive
+// intact instead of getting mangled by naive browsers.
+function contentDisposition(name) {
+  const fallback = name.replace(/[^\x20-\x7E]/g, "_").replace(/"/g, "");
+  return `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(name)}`;
+}
+
+async function streamZip(res, { zipName, entries }) {
+  res.status(200);
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Disposition", contentDisposition(`${zipName}.zip`));
+
+  const archive = archiver("zip", { zlib: { level: 6 } });
+  archive.on("error", (err) => {
+    // Headers are already flushed by this point — nothing to do but end
+    // the connection; the client will see a truncated/corrupt download,
+    // which is honest given something actually failed mid-stream.
+    res.destroy(err);
+  });
+  archive.pipe(res);
+
+  for (const entry of entries) {
+    if (!entry.node) {
+      // Directory-only entry (empty folder placeholder).
+      archive.append(Buffer.alloc(0), { name: entry.relPath });
+      continue;
+    }
+    if (entry.node.storagePath) {
+      try {
+        const remote = await axios.get(entry.node.storagePath, { responseType: "stream" });
+        archive.append(remote.data, { name: entry.relPath });
+      } catch {
+        // One bad remote file shouldn't sink the whole zip — drop in a
+        // placeholder noting it couldn't be fetched and keep going.
+        archive.append(Buffer.from("This file could not be downloaded.\n"), {
+          name: `${entry.relPath}.error.txt`,
+        });
+      }
+    } else {
+      archive.append(Buffer.from(entry.node.content ?? "", "utf-8"), { name: entry.relPath });
+    }
+  }
+
+  await archive.finalize();
+}
 
 const getTree = asyncHandler(async (req, res) => {
   const items = await nodeService.getFullTree(req.user.id);
@@ -104,22 +151,53 @@ const emptyTrash = asyncHandler(async (req, res) => {
   new ApiResponse(200, result, "Trash emptied").send(res);
 });
 
+// GET /nodes/:id/download — single item. Folders are zipped on the fly;
+// files stream directly (from ImageKit for uploads, from the DB `content`
+// column for in-app text files — previously unsupported and a 404).
 const download = asyncHandler(async (req, res) => {
-  const node = await nodeService.getDownloadInfo(
-    req.params.id,
-    req.user.id
-  );
+  const descriptor = await nodeService.getDownloadDescriptor(req.params.id, req.user.id);
 
-  const response = await axios.get(node.storagePath, {
-    responseType: "arraybuffer",
-  });
+  if (descriptor.kind === "folder") {
+    const entries = await nodeService.buildZipEntries([descriptor.node.id], req.user.id);
+    await streamZip(res, { zipName: descriptor.node.name, entries });
+    return;
+  }
 
-  res.setHeader(
-    "Content-Type",
-    response.headers["content-type"]
-  );
+  if (descriptor.kind === "buffer") {
+    res.setHeader("Content-Type", descriptor.mimeType);
+    res.setHeader("Content-Disposition", contentDisposition(descriptor.name));
+    res.setHeader("Content-Length", descriptor.buffer.length);
+    res.send(descriptor.buffer);
+    return;
+  }
 
-  res.send(response.data);
+  // kind === "remote": proxy-stream from ImageKit instead of buffering the
+  // whole file in memory (the old arraybuffer approach), and set the
+  // filename so the browser actually saves it as a download rather than
+  // navigating to it inline.
+  const upstream = await axios.get(descriptor.storagePath, { responseType: "stream" });
+  res.setHeader("Content-Type", upstream.headers["content-type"] || descriptor.mimeType);
+  res.setHeader("Content-Disposition", contentDisposition(descriptor.name));
+  if (upstream.headers["content-length"]) {
+    res.setHeader("Content-Length", upstream.headers["content-length"]);
+  }
+  upstream.data.pipe(res);
+});
+
+// GET /nodes/download?ids=a,b,c — bulk/multi-select download. Any mix of
+// file and folder ids, zipped together at the top level.
+const downloadBulk = asyncHandler(async (req, res) => {
+  const raw = req.query.ids;
+  if (!raw) throw ApiError.badRequest("No items selected");
+  const ids = String(raw)
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (ids.length === 0) throw ApiError.badRequest("No items selected");
+
+  const entries = await nodeService.buildZipEntries(ids, req.user.id);
+  const zipName = ids.length === 1 ? "download" : `download-${ids.length}-items`;
+  await streamZip(res, { zipName, entries });
 });
 
 module.exports = {
@@ -141,4 +219,5 @@ module.exports = {
   deleteForever,
   emptyTrash,
   download,
+  downloadBulk,
 };

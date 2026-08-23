@@ -151,10 +151,17 @@ export default function CommandPalette() {
     >
       <div
         className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-background-elevated
-                   shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl backdrop-saturate-150 animate-scale-in"
+                   shadow-[0_24px_70px_rgba(0,0,0,0.4)] backdrop-blur-2xl backdrop-saturate-150 animate-scale-in
+                   ring-1 ring-white/[0.04]"
       >
-        <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
-          <Search size={16} className="shrink-0 text-foreground-secondary" />
+        <div
+          className="flex items-center gap-2.5 border-b border-border px-4 py-3.5"
+          style={{
+            background:
+              "linear-gradient(160deg, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 70%)",
+          }}
+        >
+          <Search size={16} className="shrink-0 text-accent/80" />
           <input
             ref={inputRef}
             value={query}
@@ -164,18 +171,34 @@ export default function CommandPalette() {
             }}
             onKeyDown={handleKeyDown}
             placeholder="Search apps and files..."
-            className="w-full bg-transparent text-sm text-foreground outline-none placeholder-foreground-secondary/60"
+            className="w-full bg-transparent text-[14px] text-foreground outline-none placeholder-foreground-secondary/60"
           />
           <kbd className="hidden shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-foreground-secondary/70 sm:block">
             Esc
           </kbd>
         </div>
 
+        {query.trim() && (
+          <p className="px-4 pt-2.5 text-[10.5px] font-medium uppercase tracking-wide text-foreground-secondary/50">
+            {results.length} result{results.length === 1 ? "" : "s"}
+          </p>
+        )}
+        {!query.trim() && results.length > 0 && (
+          <p className="px-4 pt-2.5 text-[10.5px] font-medium uppercase tracking-wide text-foreground-secondary/50">
+            Quick access
+          </p>
+        )}
+
         <div className="max-h-[50vh] overflow-y-auto p-2">
           {results.length === 0 ? (
-            <p className="px-3 py-8 text-center text-xs text-foreground-secondary">
-              Nothing matches &quot;{query}&quot;
-            </p>
+            <div className="flex flex-col items-center gap-2 px-3 py-10 text-center">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/[0.04] dark:bg-white/[0.06]">
+                <Search size={16} className="text-foreground-secondary/50" />
+              </span>
+              <p className="text-xs text-foreground-secondary">
+                Nothing matches &quot;{query}&quot;
+              </p>
+            </div>
           ) : (
             results.map((r, i) => (
               <ResultRow

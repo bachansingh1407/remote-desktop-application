@@ -6,13 +6,13 @@ import {
   Trash2, LayoutGrid, ListIcon, Home, Upload, FileSpreadsheet, FileImage,
   Pencil, Copy, FolderInput, Search, X,
   FileCode2, FileJson2, FileAudio2, FileVideo2, FileArchive, FileTerminal,
-  ArrowUpDown, ChevronDown, Check, ArrowUp, ArrowDown, UploadCloud,
+  ArrowUpDown, ChevronDown, Check, ArrowUp, ArrowDown, UploadCloud, Download,
 } from "lucide-react";
 import { useFileSystemStore, useWindowStore } from "@/app/stores";
 import { toast } from "@/app/stores/useToastStore";
 import { useContextMenu } from "@/app/components/common/ContextMenu";
 import FileEditor from "@/app/components/common/FileEditor";
-import { fetchFileDataUrl } from "@/app/lib/axios";
+import { fetchFileDataUrl, downloadNode, downloadNodes } from "@/app/lib/axios";
 import dynamic from "next/dynamic";
 
 const FileViewer = dynamic(() => import("@/app/components/common/FileViewer"), {
@@ -165,8 +165,34 @@ export default function FilesApp({ initialFolderId = null }) {
     }
   };
 
+  // Folders come back zipped from the backend, files stream as-is — same
+  // action either way from the user's point of view.
+  const handleDownload = async (node) => {
+    try {
+      const fallbackName = node.type === "folder" ? `${node.name}.zip` : node.name;
+      await downloadNode(node.id, fallbackName);
+      toast.success(`Downloading "${node.name}"`);
+    } catch (err) {
+      toast.error(`Couldn't download "${node.name}"`);
+    }
+  };
+
+  const handleDownloadFolder = async () => {
+    if (!children.length) {
+      toast.error("Nothing to download here");
+      return;
+    }
+    try {
+      await downloadNodes(children.map((n) => n.id), `${currentFolderLabel}.zip`);
+      toast.success(`Downloading ${children.length} item${children.length === 1 ? "" : "s"}`);
+    } catch (err) {
+      toast.error("Couldn't download this folder");
+    }
+  };
+
   const buildNodeMenu = (node) => [
     { label: "Open", onClick: () => openNode(node) },
+    { label: "Download", icon: Download, onClick: () => handleDownload(node) },
     { divider: true },
     { label: "Rename", icon: Pencil, onClick: () => startRename(node) },
     { label: "Duplicate", icon: Copy, onClick: () => duplicateNode(node.id) },
@@ -179,6 +205,8 @@ export default function FilesApp({ initialFolderId = null }) {
     { label: "New folder", icon: FolderPlus, onClick: () => startCreate("folder") },
     { label: "New file", icon: FilePlus2, onClick: () => startCreate("file") },
     { label: "Import...", icon: Upload, onClick: handleImportClick },
+    { divider: true },
+    { label: "Download this folder", icon: Download, onClick: handleDownloadFolder, disabled: !children.length },
   ];
 
   const handleNodeContextMenu = (e, node) => openMenu(e, buildNodeMenu(node));
@@ -304,6 +332,7 @@ export default function FilesApp({ initialFolderId = null }) {
           </div>
           <ToolbarButton icon={Upload} label="Import" onClick={handleImportClick} disabled={isSearching} variant="solid" />
           <input ref={fileInputRef} type="file" multiple onChange={handleFilesSelected} className="hidden" />
+          <ToolbarButton icon={Download} label="Download all" onClick={handleDownloadFolder} disabled={isSearching || !children.length} />
 
           <div className="flex-1" />
 

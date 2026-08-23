@@ -439,7 +439,7 @@ function FilesSection() {
                     <StatBox label="Folders" value={folderCount} />
                 </div>
                 <p className="mt-2 text-[11px] text-foreground-secondary">
-                    ~{estimatedKB} KB used (synced to your Campus backend)
+                    ~{estimatedKB} KB used (synced to Campus Database)
                 </p>
             </Field>
         </Section>

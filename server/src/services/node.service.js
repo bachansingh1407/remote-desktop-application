@@ -1,9 +1,35 @@
 const axios = require("axios");
+const archiver = require("archiver");
 
 const prisma = require("../config/db");
 const ApiError = require("../utils/ApiError");
 const { NODE_TYPES } = require("../constants");
 const storageService = require("./storage.service");
+
+// Every listing/tree/search/trash endpoint below intentionally omits
+// `content`. The frontend never reads it off these payloads — file bodies
+// are fetched separately, on demand, when a file is actually opened (see
+// fetchFileText/fetchFileDataUrl on the frontend, which hit /:id/download).
+// Pulling full text content for every node on every tree/list/search
+// query was dead weight on the wire and in Postgres — for a workspace
+// with a handful of sizeable text files this alone measurably slows down
+// "APIs feel slow" on every navigation, not just file open.
+const LIST_SELECT = {
+  id: true,
+  type: true,
+  name: true,
+  mimeType: true,
+  size: true,
+  storagePath: true,
+  thumbnailUrl: true,
+  trashed: true,
+  trashedAt: true,
+  originalParentId: true,
+  createdAt: true,
+  updatedAt: true,
+  ownerId: true,
+  parentId: true,
+};
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -12,8 +38,7 @@ const storageService = require("./storage.service");
 /**
  * Get a node belonging to the authenticated owner.
  */
-async function getNodeOrThrow(id, ownerId) {
-  const node = await prisma.node.findFirst({
+async function getNodeOrThrow(id, ownerId) {  const node = await prisma.node.findFirst({
     where: {
       id,
       ownerId,
@@ -161,6 +186,7 @@ async function listChildren(ownerId, parentId) {
       { type: "asc" },
       { name: "asc" },
     ],
+    select: LIST_SELECT,
   });
 }
 
@@ -185,6 +211,7 @@ async function listTrash(ownerId) {
     orderBy: {
       trashedAt: "desc",
     },
+    select: LIST_SELECT,
   });
 
   const trashedIds = new Set(
@@ -215,6 +242,7 @@ async function searchNodes(ownerId, query) {
       updatedAt: "desc",
     },
     take: 50,
+    select: LIST_SELECT,
   });
 }
 
@@ -274,6 +302,17 @@ async function getPath(ownerId, id) {
  * Used by the frontend to hydrate the complete local filesystem cache.
  */
 async function getFullTree(ownerId) {
+  // NOTE: unlike listChildren/searchNodes/listTrash below, this one keeps
+  // `content` in the select. The frontend's only hydration call
+  // (`useFileSystemStore.hydrate()`) hits this endpoint once and then
+  // treats the result as the synchronous source of truth for every node
+  // — FileEditor, CodeFileEditor, WriteApp, and the storage-usage
+  // calculation in Settings all read `item.content` straight out of that
+  // cache with no separate fetch. Trimming it here silently blanks out
+  // every text file's content in the editor and would let autosave
+  // overwrite real content with "" on next edit. If a future endpoint
+  // consumer only needs metadata, use listChildren/searchNodes instead —
+  // both already omit content and are safe to trim further.
   return prisma.node.findMany({
     where: {
       ownerId,
@@ -893,26 +932,106 @@ async function emptyTrash(ownerId) {
 // Download
 // ---------------------------------------------------------------------------
 
-async function getDownloadInfo(
-  id,
-  ownerId
-) {
-  const node = await getNodeOrThrow(
-    id,
-    ownerId
-  );
+/**
+ * Describes how to serve a single node's download.
+ *
+ * Two kinds of FILE nodes exist:
+ *   - "in-app" text files created via createFile/updateContent, which only
+ *     ever have `content` (no storagePath). The old implementation only
+ *     handled uploaded/ImageKit files and 404'd on these.
+ *   - uploaded files, stored remotely on ImageKit, referenced by
+ *     `storagePath` (a public URL).
+ *
+ * FOLDER nodes have no single-stream representation — the controller is
+ * expected to route those through `buildZipEntries` instead.
+ */
+async function getDownloadDescriptor(id, ownerId) {
+  const node = await getNodeOrThrow(id, ownerId);
 
-  if (!node.storagePath) {
-    throw ApiError.notFound(
-      "File not found"
-    );
+  if (node.trashed) {
+    throw ApiError.notFound("Item not found");
   }
 
+  if (node.type === NODE_TYPES.FOLDER) {
+    return { kind: "folder", node };
+  }
+
+  if (node.storagePath) {
+    return {
+      kind: "remote",
+      name: node.name,
+      mimeType: node.mimeType || "application/octet-stream",
+      storagePath: node.storagePath,
+    };
+  }
+
+  // In-app text file: no uploaded blob, just DB content.
   return {
-    storagePath: node.storagePath,
+    kind: "buffer",
     name: node.name,
-    mimeType: node.mimeType,
+    mimeType: node.mimeType || "text/plain; charset=utf-8",
+    buffer: Buffer.from(node.content ?? "", "utf-8"),
   };
+}
+
+/**
+ * Resolves a mixed list of node ids (files and/or folders, any depth) into
+ * a flat list of zip entries: { relPath, node }. Folders contribute their
+ * full (non-trashed) subtree, nested under the folder's own name so the
+ * zip preserves the on-screen structure. Used for both a single-folder
+ * download and a multi-select "download as zip" action.
+ */
+async function buildZipEntries(rootIds, ownerId) {
+  const entries = [];
+
+  for (const rootId of rootIds) {
+    const rootNode = await getNodeOrThrow(rootId, ownerId);
+    if (rootNode.trashed) {
+      throw ApiError.notFound("Item not found");
+    }
+
+    if (rootNode.type === NODE_TYPES.FILE) {
+      entries.push({ relPath: rootNode.name, node: rootNode });
+      continue;
+    }
+
+    // FOLDER: pull the whole subtree in one recursive query, then rebuild
+    // relative paths in memory instead of re-querying per level.
+    const subtree = await getSubtreeIds(rootNode.id, ownerId);
+    const ids = subtree.map((r) => r.id);
+    const nodes = await prisma.node.findMany({
+      where: { id: { in: ids }, trashed: false },
+    });
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+
+    const pathCache = new Map();
+    function pathFor(node) {
+      if (pathCache.has(node.id)) return pathCache.get(node.id);
+      const p =
+        node.id === rootNode.id
+          ? rootNode.name
+          : byId.has(node.parentId)
+          ? `${pathFor(byId.get(node.parentId))}/${node.name}`
+          : node.name;
+      pathCache.set(node.id, p);
+      return p;
+    }
+
+    let hasFile = false;
+    for (const node of nodes) {
+      if (node.type === NODE_TYPES.FILE) {
+        hasFile = true;
+        entries.push({ relPath: pathFor(node), node });
+      }
+    }
+    // Empty folder (no files anywhere in the subtree) — still represent it
+    // as a directory entry so the zip isn't just silently missing it.
+    if (!hasFile) {
+      entries.push({ relPath: `${rootNode.name}/`, node: null });
+    }
+  }
+
+  return entries;
 }
 
 // ---------------------------------------------------------------------------
@@ -940,6 +1059,7 @@ module.exports = {
   deleteForever,
   emptyTrash,
 
-  getDownloadInfo,
+  getDownloadDescriptor,
+  buildZipEntries,
   getNodeOrThrow,
 };
